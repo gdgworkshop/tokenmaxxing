@@ -40,7 +40,8 @@ RULES_DIR="${CONFIG_DIR}/rules"
 echo -e "📦 Creating installation directories..."
 mkdir -p "${SCRIPTS_DIR}" "${REFS_DIR}" "${RULES_DIR}"
 
-BASE_URL="https://raw.githubusercontent.com/saadgh/tokenmaxxing/main"
+REPO_NAME="${TOKENMAXX_REPO:-saadgh/tokenmaxxing}"
+BASE_URL="https://raw.githubusercontent.com/${REPO_NAME}/main"
 
 # Download files (or copy if run locally from git repo)
 if [ -f "./SKILL.md" ] && [ -f "./scripts/tokenmaxx.py" ]; then

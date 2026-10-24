@@ -36,9 +36,10 @@ from datetime import datetime, timedelta, timezone
 DEFAULT_BUDGET = 5.00
 CREDIT_LIFESPAN_HOURS = 12
 
-CURRENT_VERSION = "1.0.0"
-VERSION_URL = "https://raw.githubusercontent.com/saadgh/tokenmaxxing/main/VERSION"
-RAW_REPO_BASE = "https://raw.githubusercontent.com/saadgh/tokenmaxxing/main"
+CURRENT_VERSION = "1.0.1"
+GITHUB_REPO = os.environ.get("TOKENMAXX_REPO", "saadgh/tokenmaxxing")
+VERSION_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/VERSION"
+RAW_REPO_BASE = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main"
 
 PRICING_TABLE = {
     "gemini-3.8-flash": {
@@ -603,6 +604,41 @@ def copy_to_clipboard(text: str) -> bool:
         pass
     return False
 
+def normalize_claim_url(user_input: str) -> tuple:
+    """
+    Normalizes claim URLs, shortlinks, or raw event slugs into a valid browser URL.
+    Returns (normalized_url, suggested_event_name).
+    """
+    raw = (user_input or "").strip()
+    if not raw:
+        return "https://me.developers.google.com/benefits", ""
+
+    # Prepend https:// if protocol is missing
+    if not raw.startswith("http://") and not raw.startswith("https://"):
+        if "/" in raw or "." in raw:
+            raw = "https://" + raw
+        else:
+            # Bare event slug like 'gdg-jakarta-road-to-devfest-cloud-run'
+            raw = f"https://me.developers.google.com/benefits/claim/{raw}"
+
+    # Extract event slug for personalized project naming
+    suggested_event = ""
+    try:
+        parts = [p for p in raw.split("?")[0].split("#")[0].split("/") if p]
+        if parts:
+            last = parts[-1].lower()
+            if last not in ["benefits", "claim", "credits"]:
+                tokens = [t for t in re.split(r"[-_]", last) if t]
+                if tokens:
+                    if len(tokens) >= 2 and tokens[0] == "gdg":
+                        suggested_event = f"{tokens[0]}-{tokens[1]}"
+                    else:
+                        suggested_event = tokens[0]
+    except Exception:
+        pass
+
+    return raw, suggested_event
+
 def open_browser_url(url: str):
     """Cross-platform browser deep-link opener"""
     try:
@@ -896,14 +932,13 @@ def run_interactive_setup():
 
     # Step 1: Claim Credit
     print(" 🎟️  STEP 1: Claim Your $5.00 Event Voucher")
-    print("    If you have your claim URL (e.g. from your workshop organizer),")
+    print("    Paste your claim link (e.g. https://g.dev/credits/... or me.developers.google.com/...)")
     try:
-        claim_url = input("    Paste claim URL (or press Enter to open Builders Hub): ").strip()
+        raw_claim = input("    👉 Claim URL (or press Enter to open Builders Hub): ").strip()
     except (EOFError, KeyboardInterrupt):
-        claim_url = ""
-    if not claim_url:
-        claim_url = "https://me.developers.google.com/benefits"
-    print(f"    Opening claim page in browser...")
+        raw_claim = ""
+    claim_url, suggested_event = normalize_claim_url(raw_claim)
+    print(f"    Opening claim page in browser: {claim_url}")
     open_browser_url(claim_url)
     try:
         input("    👉 Click 'Claim Credit' in browser, then press Enter here to continue... ")
@@ -920,14 +955,19 @@ def run_interactive_setup():
 
     # Step 2: Create Project
     today_str = datetime.now().strftime("%d%b").lower()
-    example_id = f"gdg-workshop-{today_str}"
+    prefix = suggested_event or "gdg-workshop"
+    example_id = f"{prefix}-{today_str}"
     print(" 🏗️  STEP 2: Create Your Google Cloud Project")
     print("    Opening project creation console in browser...")
-    print(f"    💡 Pro-Tip 1 (Naming): Name your project 'gdg-workshop-{today_str}'")
+    print(f"    💡 Pro-Tip 1 (Naming): Name your project '{example_id}'")
     print("       (Google Cloud Project IDs must be globally unique & lowercase).")
     print("    💡 Pro-Tip 2 (Billing Account): Click the 'Billing account' dropdown and select")
     print("       the one starting with '[YYYY-MM-DD] GDP Credit: ...'")
-    print("       (This guarantees it draws exclusively from your $5 grant, NEVER your personal card!).\n")
+    print("       (This guarantees it draws exclusively from your $5 grant, NEVER your personal card!).")
+    print("    ⏳ Pro-Tip 3 (Sync Buffer): It takes 15–30 seconds for Google Cloud to sync your voucher.")
+    print("       If the 'Billing account' dropdown is blank, wait 15 seconds and refresh the page.")
+    print("    👤 Pro-Tip 4 (Account Check): Make sure your browser is using the same Google profile")
+    print("       that claimed the voucher (check avatar in top-right of Cloud Console).\n")
     open_browser_url("https://console.cloud.google.com/projectcreate")
     try:
         project_id = input(f"    👉 Enter your created Project ID (e.g. {example_id}): ").strip().lower()
@@ -978,20 +1018,26 @@ def run_interactive_setup():
         pass
     print("-" * 66)
 
-    # Step 5: Verification
+    # Step 5: Verification (with quick sync polling)
     print(" 🔍 Auto-verifying connection via local language server...")
     port, csrf, pid = discover_language_server()
+    verified = False
     if port and csrf:
-        u = query_user_status(port, csrf)
-        tier = u.get("userTier", {}).get("name", "")
-        is_gcp = u.get("isGcpTos", False)
-        if is_gcp or tier == "Agent Platform":
-            print(f" 🎉 SUCCESS! Verified: Live on Agent Platform ({project_id})!")
-            print("    Your $5.00 credit is active, API is pre-enabled, and turn 1 is ready!")
-            record_telemetry_event("setup_completed", {"project_id": project_id})
-        else:
+        for attempt in range(2):
+            u = query_user_status(port, csrf)
+            tier = u.get("userTier", {}).get("name", "")
+            is_gcp = u.get("isGcpTos", False)
+            if is_gcp or tier == "Agent Platform":
+                print(f" 🎉 SUCCESS! Verified: Live on Agent Platform ({project_id})!")
+                print("    Your $5.00 credit is active, API is pre-enabled, and turn 1 is ready!")
+                record_telemetry_event("setup_completed", {"project_id": project_id})
+                verified = True
+                break
+            if attempt == 0:
+                time.sleep(2)
+        if not verified:
             print(f" ℹ️  Antigravity is currently detecting plan: '{tier}'.")
-            print("    If you just switched, wait a moment or start a new conversation window.")
+            print("    Close Settings (✕) and click '+ New Conversation' in the top-left to activate!")
     else:
         print(" 🎉 Setup completed! Start prompting in Antigravity chat.")
         record_telemetry_event("setup_completed", {"project_id": project_id})

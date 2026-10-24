@@ -81,11 +81,15 @@ When Google Cloud marks a credit **`🔴 Expired`** at the 12-hour mark:
 
 Solves the **#1 fatal bug** in legacy workshop documentation where switching to `Agent Platform` *before* enabling the API caused a permanent `403 PERMISSION_DENIED` crash:
 
-1. **Step 1 (Claim Credit):** Opens event claim link; clicking locks exact 12-hour timestamp in `state.json`.
+1. **Step 1 (Claim Credit):**
+   - Normalizes any event URL, shortlink (`g.dev/credits/...`), or raw event slug into `https://me.developers.google.com/benefits/claim/<slug>`.
+   - Clicking locks exact 12-hour timestamp in `state.json`.
 2. **Step 2 (Create Project & Select Billing):**
    - Opens `https://console.cloud.google.com/projectcreate`.
-   - **Naming Pro-Tip:** Recommend `gdg-workshop-<date>` (e.g. `gdg-workshop-24oct`) to guarantee global uniqueness and prevent naming collision errors. Remind user that Project IDs are lowercase.
-   - **Billing Account Pro-Tip:** Explicitly instruct user to click the **Billing account** dropdown and select the account starting with **`[YYYY-MM-DD] GDP Credit: ...`** so it draws exclusively from the \$5.00 grant and never bills a personal card. Auto-copies `project_id` to clipboard.
+   - **Naming Pro-Tip:** Auto-suggests `<event-slug>-<date>` (e.g. `gdg-jakarta-24oct`) to guarantee global uniqueness and prevent naming collision errors. Reminds user that Project IDs are lowercase.
+   - **Billing Account Pro-Tip:** Explicitly instructs user to click the **Billing account** dropdown and select the account starting with **`[YYYY-MM-DD] GDP Credit: ...`** so it draws exclusively from the \$5.00 grant and never bills a personal card. Auto-copies `project_id` to clipboard.
+   - **Sync Buffer Check:** Notes that Google Cloud takes 15–30 seconds to sync new vouchers; if the billing dropdown is blank, refresh after 15 seconds.
+   - **Account Match Check:** Reminds attendee to ensure their Cloud Console browser profile matches the Google account that claimed the voucher.
 3. **Step 3 (Pre-Enable API *Before* Switching!):** Opens API enableflow *while still on the working account* so the API is live prior to switching.
 4. **Step 4 (3-Phase Account Switch):**
    - **Phase 1 (In Antigravity):** Click **⚙️ Settings** (bottom-left) → Under Account, click **Sign Out**.
