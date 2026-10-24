@@ -255,10 +255,11 @@ def parse_transcript_tokens(transcript_path: Path):
         pass
     return steps
 
-def aggregate_vertex_usage(port: int = None, csrf_token: str = None):
+def aggregate_vertex_usage(port: int = None, csrf_token: str = None, claimed_dt = None):
     """
     Scans all conversations to find steps executed under API_PROVIDER_GOOGLE_VERTEX
     and prices each step accurately based on model (Flash vs. Argon).
+    Filters out historical steps prior to claimed_dt so returning attendees start fresh.
     """
     total_flash_in = 0
     total_flash_cached = 0
@@ -295,12 +296,22 @@ def aggregate_vertex_usage(port: int = None, csrf_token: str = None):
                 usage = chat_model.get("usage", {})
                 provider = usage.get("apiProvider", "")
                 if provider == "API_PROVIDER_GOOGLE_VERTEX":
-                    conv_has_vertex = True
                     resp_model = chat_model.get("responseModel", "") or chat_model.get("model", "")
                     step_indices = item.get("stepIndices", [])
                     for sidx in step_indices:
                         if sidx in step_map:
                             s = step_map[sidx]
+                            step_time = s.get("created_at")
+                            if claimed_dt and step_time:
+                                try:
+                                    step_dt = datetime.fromisoformat(step_time.replace("Z", "+00:00"))
+                                    if step_dt < claimed_dt:
+                                        del step_map[sidx]
+                                        continue  # Historical step from previous workshop!
+                                except Exception:
+                                    pass
+
+                            conv_has_vertex = True
                             in_tok = s.get("input_tokens", 0)
                             cached_tok = s.get("cache_read_tokens", 0)
                             out_tok = s.get("output_tokens", 0)
@@ -334,10 +345,19 @@ def aggregate_vertex_usage(port: int = None, csrf_token: str = None):
                             continue
                         text = blob.decode("latin1", errors="ignore")
                         if "API_PROVIDER_GOOGLE_VERTEX" in text or "gdg-workshop" in text:
-                            conv_has_vertex = True
                             is_argon = "gemini-4-argon" in text
                             if idx < len(steps):
                                 s = steps[idx]
+                                step_time = s.get("created_at")
+                                if claimed_dt and step_time:
+                                    try:
+                                        step_dt = datetime.fromisoformat(step_time.replace("Z", "+00:00"))
+                                        if step_dt < claimed_dt:
+                                            continue  # Historical step from previous workshop!
+                                    except Exception:
+                                        pass
+
+                                conv_has_vertex = True
                                 inp = s.get("input_tokens", 0)
                                 cached = s.get("cache_read_tokens", 0)
                                 out = s.get("output_tokens", 0)
@@ -701,8 +721,15 @@ def run_tokenmaxx(args):
     is_pro = "pro" in plan_name.lower() or "ultra" in plan_name.lower()
     is_gcp = is_gcp_tos or (plan_name == "Agent Platform")
 
-    # 2. Multi-conversation token usage aggregation
-    usage = aggregate_vertex_usage(port, csrf_token)
+    claimed_dt = None
+    if state.get("claimed_at"):
+        try:
+            claimed_dt = datetime.fromisoformat(state["claimed_at"].replace("Z", "+00:00"))
+        except Exception:
+            pass
+
+    # 2. Multi-conversation token usage aggregation (isolated to active workshop window)
+    usage = aggregate_vertex_usage(port, csrf_token, claimed_dt)
 
     # 3. 12-hour expiration calculation
     timer_info = calculate_time_remaining(state, usage.get("earliest_gcp_timestamp"))
@@ -935,10 +962,24 @@ def main():
     parser.add_argument("--install-skill", type=str, help="1-click install official Google skill from github.com/google/skills")
     parser.add_argument("--setup", action="store_true", help="Launch interactive GDG credit setup wizard")
     parser.add_argument("--update", action="store_true", help="Check and install the latest TokenMaxxing release from GitHub")
+    parser.add_argument("--reset", "--new-workshop", action="store_true", dest="reset", help="Reset budget to $5.00 and restart 12h clock for a new workshop")
 
     args = parser.parse_args()
 
     record_telemetry_event("tokenmaxx_invoked", {"flag_setup": args.setup, "flag_json": args.json})
+
+    if args.reset:
+        state = load_state()
+        state["claimed_at"] = datetime.now(timezone.utc).isoformat()
+        state["status"] = "active"
+        save_state(state)
+        print("=" * 66)
+        print(" 🔄 WORKSHOP SESSION RESET")
+        print("=" * 66)
+        print(" Past workshop conversations have been archived as historical.")
+        print(" Your budget is reset to $5.00 (100% remaining) with a fresh 12-hour clock!")
+        print("=" * 66)
+        return
 
     if args.update:
         check_for_updates(force=True)
