@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GDG Workshop Onboarding — TokenMaxxing for Antigravity</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      font-family: 'Google Sans', sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .slide-container {
+      width: 90vw;
+      max-width: 1200px;
+      height: 80vh;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 24px;
+      padding: 60px 80px;
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+    .slide-container.active { display: flex; animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .header { display: flex; align-items: center; gap: 16px; }
+    .badge {
+      background: #38bdf820;
+      color: #38bdf8;
+      border: 1px solid #38bdf850;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    h1 { font-size: 3rem; font-weight: 700; color: #ffffff; line-height: 1.2; margin-top: 12px; }
+    .subtitle { font-size: 1.4rem; color: #94a3b8; margin-top: 8px; }
+    
+    .code-box {
+      background: #090d16;
+      border: 1px solid #38bdf840;
+      border-radius: 16px;
+      padding: 24px 32px;
+      margin: 30px 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.25rem;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: all;
+    }
+    .code-box span.prompt { color: #64748b; margin-right: 12px; }
+
+    .grid-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin: 30px 0; }
+    .step-card {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .step-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #4285F4;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+    .step-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; color: #f1f5f9; }
+    .step-desc { font-size: 0.95rem; color: #94a3b8; line-height: 1.5; }
+
+    .tip-box {
+      background: #022c22;
+      border: 1px solid #059669;
+      border-radius: 12px;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      color: #6ee7b7;
+      font-size: 1.1rem;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.95rem;
+      color: #64748b;
+      border-top: 1px solid #334155;
+      padding-top: 20px;
+    }
+    .nav-buttons button {
+      background: #334155;
+      color: white;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+    }
+    .nav-buttons button:hover { background: #475569; }
+  </style>
+</head>
+<body>
+
+  <!-- Slide 1 -->
+  <div class="slide-container active" id="slide-1">
+    <div>
+      <div class="header">
+        <span class="badge">Google Developer Groups</span>
+        <span style="color:#64748b">•</span>
+        <span style="color:#94a3b8">Interactive Workshop</span>
+      </div>
+      <h1>Claim Your $5.00 Cloud Credit & Setup</h1>
+      <p class="subtitle">Get ready in 60 seconds with TokenMaxxing for Google Antigravity</p>
+
+      <div class="code-box">
+        <div>
+          <span class="prompt">$</span>curl -fsSL https://g.dev/events/tokenmaxxing | bash
+        </div>
+      </div>
+
+      <div style="font-size: 1.3rem; color: #cbd5e1; line-height: 1.8;">
+        👉 <b>In Antigravity chat, simply type:</b><br>
+        <span style="color: #38bdf8; font-family: 'JetBrains Mono', monospace; background: #0f172a; padding: 4px 12px; border-radius: 6px;">"Help me set up my GDG workshop credits"</span>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>Slide 1 of 2 — Press [Right Arrow] or click Next</span>
+      <div class="nav-buttons">
+        <button onclick="nextSlide()">Next &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 2 -->
+  <div class="slide-container" id="slide-2">
+    <div>
+      <div class="header">
+        <span class="badge">Agent-Guided Setup</span>
+        <span style="color:#64748b">•</span>
+        <span style="color:#94a3b8">Zero 403 Errors</span>
+      </div>
+      <h1>How the Agent Sets Up Your Account</h1>
+      <p class="subtitle">Your AI co-pilot handles the Google Cloud activation in 3 simple steps</p>
+
+      <div class="grid-steps">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-title">Claim Voucher</div>
+          <div class="step-desc">Agent opens Google Builders Hub. Clicking "Claim" locks your 12-hour expiration clock.</div>
+        </div>
+        <div class="step-card">
+          <div class="step-num" style="background:#EA4335">2</div>
+          <div class="step-title">Pre-Enable API</div>
+          <div class="step-desc">Agent pre-activates <code>aiplatform.googleapis.com</code> BEFORE account switching to prevent errors.</div>
+        </div>
+        <div class="step-card">
+          <div class="step-num" style="background:#34A853">3</div>
+          <div class="step-title">Switch Account</div>
+          <div class="step-desc">Select "Use Business Account" &rarr; Agent Platform. Your personal card is NEVER charged.</div>
+        </div>
+      </div>
+
+      <div class="tip-box">
+        <span style="font-size: 1.6rem">💡</span>
+        <div><b>TokenMaxx Sweet Spot:</b> Set your model to <b>Gemini 3.8 Flash</b>. It is 12.5x more token-efficient than Argon, giving you 1,000+ turns for the entire workshop!</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>Slide 2 of 2</span>
+      <div class="nav-buttons">
+        <button onclick="prevSlide()">&larr; Previous</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 2;
+
+    function showSlide(n) {
+      document.querySelectorAll('.slide-container').forEach(el => el.classList.remove('active'));
+      document.getElementById(`slide-${n}`).classList.add('active');
+      currentSlide = n;
+    }
+    function nextSlide() { if (currentSlide < totalSlides) showSlide(currentSlide + 1); }
+    function prevSlide() { if (currentSlide > 1) showSlide(currentSlide - 1); }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'Space') nextSlide();
+      if (e.key === 'ArrowLeft') prevSlide();
+    });
+  </script>
+</body>
+</html>
