@@ -919,15 +919,22 @@ def run_interactive_setup():
     print("-" * 66)
 
     # Step 2: Create Project
+    today_str = datetime.now().strftime("%d%b").lower()
+    example_id = f"gdg-workshop-{today_str}"
     print(" 🏗️  STEP 2: Create Your Google Cloud Project")
     print("    Opening project creation console in browser...")
+    print(f"    💡 Pro-Tip 1 (Naming): Name your project 'gdg-workshop-{today_str}'")
+    print("       (Google Cloud Project IDs must be globally unique & lowercase).")
+    print("    💡 Pro-Tip 2 (Billing Account): Click the 'Billing account' dropdown and select")
+    print("       the one starting with '[YYYY-MM-DD] GDP Credit: ...'")
+    print("       (This guarantees it draws exclusively from your $5 grant, NEVER your personal card!).\n")
     open_browser_url("https://console.cloud.google.com/projectcreate")
     try:
-        project_id = input("    👉 Enter your new Project ID (e.g. gdg-workshop-12345): ").strip()
+        project_id = input(f"    👉 Enter your created Project ID (e.g. {example_id}): ").strip().lower()
         while not project_id:
-            project_id = input("    Please enter a valid Project ID: ").strip()
+            project_id = input("    Please enter a valid Project ID: ").strip().lower()
     except (EOFError, KeyboardInterrupt):
-        project_id = "gdg-workshop-project"
+        project_id = example_id
 
     state["project_id"] = project_id
     save_state(state)
