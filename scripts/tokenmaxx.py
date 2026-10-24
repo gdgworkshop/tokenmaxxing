@@ -583,6 +583,26 @@ def record_telemetry_event(event_name: str, params: dict = None):
     except Exception:
         pass
 
+def copy_to_clipboard(text: str) -> bool:
+    """Copies text to system clipboard across macOS, Linux, and Windows."""
+    try:
+        if sys.platform == "darwin":
+            subprocess.run(["pbcopy"], input=text.encode("utf-8"), check=True)
+            return True
+        elif sys.platform == "win32":
+            subprocess.run(["clip"], input=text.encode("utf-8"), check=True)
+            return True
+        elif sys.platform.startswith("linux"):
+            for cmd in [["wl-copy"], ["xclip", "-selection", "clipboard"], ["xsel", "--clipboard", "--input"]]:
+                try:
+                    subprocess.run(cmd, input=text.encode("utf-8"), check=True)
+                    return True
+                except FileNotFoundError:
+                    continue
+    except Exception:
+        pass
+    return False
+
 def open_browser_url(url: str):
     """Cross-platform browser deep-link opener"""
     try:
@@ -911,6 +931,8 @@ def run_interactive_setup():
 
     state["project_id"] = project_id
     save_state(state)
+    if copy_to_clipboard(project_id):
+        print(f"    📋 Copied '{project_id}' to your clipboard!")
     print("-" * 66)
 
     # Step 3: Inverted Pre-Enablement
@@ -919,17 +941,30 @@ def run_interactive_setup():
     print(f"    Opening API activation page for '{project_id}'...")
     open_browser_url(enable_url)
     try:
-        input("    👉 Click 'Enable' in Chrome, wait for it to finish, then press Enter... ")
+        input("    👉 In Chrome: Click 'Next' (if shown), then click 'Enable'. Press Enter when done... ")
     except (EOFError, KeyboardInterrupt):
         pass
     print("-" * 66)
 
-    # Step 4: Account Switch Guidance
-    print(" 🔄 STEP 4: Switch Antigravity to Agent Platform")
-    print("    1. Click your Account Profile icon in the bottom-left of Antigravity.")
-    print("    2. Select 'Use Business Account' -> 'Continue with Google Cloud'.")
-    print("    3. Select 'Pay As You Go' and enter your Project ID: " + project_id)
-    print("       (🛡️ Note: Uses your $5 voucher; your personal card is NEVER charged).")
+    # Step 4: Account Switch Walkthrough (Demystified 3 Phases)
+    print(" 🔄 STEP 4: Switch Antigravity to Your Workshop Project")
+    print("    Antigravity uses separate enterprise auth rails for Google Cloud.")
+    print("    Follow these 3 quick phases (takes ~20 seconds):\n")
+    print("    [Phase 1: In Antigravity]")
+    print("    1. Click ⚙️  Settings in the bottom-left corner.")
+    print("    2. Under Account, click 'Sign Out'.\n")
+    print("    [Phase 2: Browser OAuth Handshake]")
+    print("    3. On the welcome screen, click 'Use Business Account'.")
+    print("    4. Click 'Continue with Google Cloud'.")
+    print("    5. In your browser: pick your Google account and click 'Sign in'.")
+    print("    6. In the pop-up, click 'Open Antigravity'.\n")
+    print("    [Phase 3: Connect Workshop Voucher]")
+    print("    7. In Antigravity, choose 'Pay As You Go' (billed to your $5 voucher).")
+    print(f"    8. Paste your Project ID: '{project_id}' (already copied to clipboard!)")
+    print("       Keep Region as 'Global' (default), and click 'Next'.")
+    print("    9. Close Settings (✕), then click '+ New Conversation' (top-left)!\n")
+    print("    🛡️ Note: 'Pay As You Go' draws 100% from your $5.00 workshop voucher.")
+    print("       Your personal credit card is NEVER charged.\n")
     try:
         input("    👉 Once switched, press Enter here to auto-verify your connection... ")
     except (EOFError, KeyboardInterrupt):

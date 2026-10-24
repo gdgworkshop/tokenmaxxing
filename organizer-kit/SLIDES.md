@@ -39,8 +39,8 @@ It replaces the legacy 17-screenshot PDF guide and cuts attendee onboarding time
 |      1. 🎟️  Claim Voucher  : Agent opens Builders Hub; locks 12h clock.     |
 |      2. ⚡ Pre-Enable API  : Agent pre-activates aiplatform.googleapis.com  |
 |                               (100% Turn-1 Crash Elimination!)              |
-|      3. 🔄 Switch Account  : Click Account > 'Use Business Account'        |
-|                               (Uses your $5 grant; personal card never billed)|
+|      3. 🔄 Switch Account  : Settings ⚙️ > Sign Out > 'Use Business Account'|
+|                               (3 quick phases; personal card never billed)  |
 |                                                                             |
 |      💡 PRO-TIP FOR 1,000+ TURNS:                                           |
 |      Keep your model set to Gemini 3.8 Flash in the dropdown.               |

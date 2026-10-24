@@ -82,9 +82,13 @@ When Google Cloud marks a credit **`🔴 Expired`** at the 12-hour mark:
 Solves the **#1 fatal bug** in legacy workshop documentation where switching to `Agent Platform` *before* enabling the API caused a permanent `403 PERMISSION_DENIED` crash:
 
 1. **Step 1 (Claim Credit):** Opens event claim link; clicking locks exact 12-hour timestamp in `state.json`.
-2. **Step 2 (Create Project):** Opens `https://console.cloud.google.com/projectcreate` directly.
-3. **Step 3 (Pre-Enable API *Before* Switching!):** Opens `https://console.developers.google.com/apis/api/aiplatform.googleapis.com/overview?project=<id>` *while still on the working account* so the API is live prior to switching.
-4. **Step 4 (Switch & Verify):** Guides user to switch to `Agent Platform` and queries `GetUserStatus` to verify active connection.
+2. **Step 2 (Create Project):** Opens `https://console.cloud.google.com/projectcreate` directly and auto-copies `project_id` to clipboard.
+3. **Step 3 (Pre-Enable API *Before* Switching!):** Opens API enableflow *while still on the working account* so the API is live prior to switching.
+4. **Step 4 (3-Phase Account Switch):**
+   - **Phase 1 (In Antigravity):** Click **⚙️ Settings** (bottom-left) → Under Account, click **Sign Out**.
+   - **Phase 2 (Browser OAuth Handshake):** Click **"Use Business Account"** → **"Continue with Google Cloud"** → Select Google Account in browser → Click **"Sign in"** → Click **"Open Antigravity"**.
+   - **Phase 3 (Connect Project):** Choose **"Pay As You Go"** (draws from $5 voucher) → Paste Project ID → Keep Region **Global** → Click **"Next"** → Close Settings → Click **`+ New Conversation`**!
+5. **Step 5 (Verify):** Queries `GetUserStatus` over local language server to verify active `Agent Platform` connection.
 
 ---
 

@@ -104,6 +104,12 @@ Directly downloads Google's verified patterns from [`github.com/google/skills`](
 tokenmaxx --install-skill gemini-api
 ```
 
+### 9. 🔄 3-Phase Account Switch Demystifier
+Eliminates confusion when switching from personal Google AI Pro/Free to Google Cloud Agent Platform across macOS, Windows, and Linux:
+1. **Phase 1 (In Antigravity):** Settings (⚙️) ➔ Sign Out.
+2. **Phase 2 (Browser OAuth Handshake):** Use Business Account ➔ Continue with Google Cloud ➔ Sign In ➔ Open Antigravity.
+3. **Phase 3 (Connect Project):** Pay As You Go ➔ Paste Project ID (auto-copied to clipboard) ➔ Next ➔ Start a `+ New Conversation`!
+
 ---
 
 ## 🎤 For GDG Organizers & Speakers
