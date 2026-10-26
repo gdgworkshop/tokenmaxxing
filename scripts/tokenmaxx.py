@@ -36,7 +36,7 @@ from datetime import datetime, timedelta, timezone
 DEFAULT_BUDGET = 5.00
 CREDIT_LIFESPAN_HOURS = 12
 
-CURRENT_VERSION = "1.0.1"
+CURRENT_VERSION = "1.0.2"
 GITHUB_REPO = os.environ.get("TOKENMAXX_REPO", "saadgh/tokenmaxxing")
 VERSION_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/VERSION"
 RAW_REPO_BASE = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main"
@@ -641,6 +641,8 @@ def normalize_claim_url(user_input: str) -> tuple:
 
 def open_browser_url(url: str):
     """Cross-platform browser deep-link opener"""
+    if os.environ.get("TOKENMAXX_NO_BROWSER") == "1":
+        return True
     try:
         if sys.platform == "darwin":
             subprocess.Popen(["open", url])
@@ -835,6 +837,10 @@ def run_tokenmaxx(args):
 
     # SCENARIO A: User is on Google AI Pro / Ultra
     if is_pro and not is_gcp:
+        if getattr(args, "pulse", False):
+            if low_quota_alerts:
+                print(f"⚠️ **TokenMaxx Quota Alert:** {', '.join(low_quota_alerts)} — switch to Gemini 3.8 Flash to avoid throttling.")
+            return
         print("=" * 66)
         print(" ⚡ TOKENMAXXING — ACTIVE PLAN: GOOGLE AI PRO")
         print("=" * 66)
@@ -875,10 +881,10 @@ def run_tokenmaxx(args):
         print(f" Total Net Utilized     : ${net_spent:.2f}")
         print(f" Expired Unspent Credit : ${remaining_budget:.2f} (🔴 Destroyed by Google Cloud)")
         print("-" * 66)
-        print(" 🛡️ SAFE DOWNGRADE WIZARD (Prevent 403 API Lockout):")
-        print(" 1. In Antigravity, click your Account profile icon in the bottom left.")
-        print(" 2. Switch from 'Agent Platform' back to 'Google AI Pro' or 'Free Tier'.")
-        print(" 3. This immediately restores prompt execution and avoids billing errors.")
+        print(" 🛡️ SWITCH BACK TO YOUR PERSONAL ACCOUNT:")
+        print(" 1. Sign Out of Antigravity (Top-right 👤 Profile icon in Editor OR Bottom-left ⚙️ Settings -> Account).")
+        print(" 2. Sign back in with your personal Google Account (Google AI Pro or Free Tier).")
+        print(" 3. This immediately restores normal chatting after your 12-hour workshop voucher ends.")
         print("=" * 66)
         return
 
@@ -912,10 +918,216 @@ def run_tokenmaxx(args):
     # Purchasing Power Translator
     turns_flash = int(remaining_budget / 0.005)
     turns_argon = int(remaining_budget / 0.06)
+    pct_used = max(0.0, 100.0 - pct_remaining)
+
+    # Milestone Checkpoint Tracker (50%, 70%, 90% used)
+    crossed_milestone = None
+    last_milestone = state.get("last_milestone_alerted", 0)
+    for m in [90, 70, 50]:
+        if pct_used >= m and last_milestone < m:
+            crossed_milestone = m
+            state["last_milestone_alerted"] = m
+            save_state(state)
+            break
+
+    # Compact 2-line TokenMaxx Status Bar (for Every-5-Prompts Pulse)
+    if getattr(args, "pulse", False) and not crossed_milestone and hours_left >= 2.0:
+        print(f"⚡ **TokenMaxx Pulse:** **${remaining_budget:.2f} / ${initial_budget:.2f} left ({pct_remaining:.1f}%)** • ⏱️ **{timer_info['formatted']}** • 💡 *~{turns_flash:,} Flash turns left (Ask `\"How much credit do I have left?\"` anytime)*")
+        if advisor_alert:
+            print(f"   {advisor_alert['title']}: {advisor_alert['message']}")
+        return
+
+    print("=" * 66)
+    if crossed_milestone:
+        print(f" 🔔 TOKENMAXXING — {crossed_milestone}% WORKSHOP CREDIT MILESTONE REACHED")
+    else:
+        print(" ⚡ TOKENMAXXING — GDP WORKSHOP TOKEN & CREDIT CO-PILOT")
+    print("=" * 66)
+    print(f" 🎟️  Active Account   : Agent Platform (GDP Workshop Credit)")
+    print(f" ⏳ Credit Lifespan  : {timer_info['formatted']}")
+    print(f" 🎯 Current Model    : {usage['recent_model_used']}")
+    print("-" * 66)
+    print(" 🧾 PRODUCTION INVOICING RECONCILIATION (MATCHES CLOUD CONSOLE):")
+    print(f" ├─ Gross Usage Cost    : ${usage['gross_usage']:.2f} (Uncached list rates)")
+    print(f" ├─ Context Cache Credit: -${usage['caching_discount']:.2f} (Prompt caching savings)")
+    print(f" ├─ Net Voucher Deducted: -${net_spent:.2f} (Across {usage['vertex_conversations_count']} GDP chats)")
+    print(f" └─ Remaining Credit    : ${remaining_budget:.2f} ({pct_remaining:.1f}% remaining)")
+    print("-" * 66)
+
+    # Model Usage Breakdown
+    print(" 📊 TOKEN CONSUMPTION BY MODEL TIER:")
+    print(f" • Gemini 3.8 Flash : {usage['flash']['input'] + usage['flash']['cached']:,} tokens (${usage['flash']['net_cost']:.2f})")
+    print(f" • Gemini 4 Argon   : {usage['argon']['input'] + usage['argon']['cached']:,} tokens (${usage['argon']['net_cost']:.2f})")
+    print("-" * 66)
+
+    # Advisor Alert
+    if advisor_alert:
+        print(f" {advisor_alert['title']}:")
+        print(f" {advisor_alert['message']}")
+        print("-" * 66)
+
     print(" 🛒 WHAT YOUR REMAINING CREDIT CAN DO:")
     print(f" • ~{turns_flash:,} interactive turns on Gemini 3.8 Flash, OR")
     print(f" • ~{turns_argon} deep reasoning refactors on Gemini 4 Argon")
+    print("-" * 66)
+    print(" 💬 Tip: Ask \"How much credit or tokens do I have left?\" anytime!")
+    print("    (TokenMaxx also pulses every 5 prompts & alerts at 50%, 70%, 90%)")
     print("=" * 66)
+
+# ---------------------------------------------------------------------------
+# Antigravity Version & Window Surface Detection (P0-D)
+# ---------------------------------------------------------------------------
+
+def detect_antigravity_environment() -> dict:
+    """
+    Detects the running Antigravity IDE/App version and active window surface
+    ('hub' = Agent Manager view vs 'ide' = Editor view) so users on older builds
+    (< 2.26.0) are warned before Step 4 if 'Use Business Account' is missing.
+    """
+    env = {
+        "version_str": None,
+        "surface": "unknown",
+        "needs_update": False
+    }
+    try:
+        ps_out = subprocess.check_output(["ps", "aux"], text=True)
+        for line in ps_out.splitlines():
+            if "language_server" in line:
+                m_ver = re.search(r"--override_ide_version\s+([0-9\.]+)", line)
+                if m_ver:
+                    env["version_str"] = m_ver.group(1)
+                m_sub = re.search(r"--subclient_type\s+(\S+)", line)
+                if m_sub:
+                    env["surface"] = m_sub.group(1).lower()
+                break
+    except Exception:
+        pass
+
+    # Fallback check on macOS Info.plist
+    if not env["version_str"] and sys.platform == "darwin":
+        plist_path = Path("/Applications/Antigravity.app/Contents/Info.plist")
+        if plist_path.exists():
+            try:
+                out = subprocess.check_output(
+                    ["defaults", "read", "/Applications/Antigravity.app/Contents/Info.plist", "CFBundleShortVersionString"],
+                    text=True
+                ).strip()
+                if out:
+                    env["version_str"] = out
+            except Exception:
+                pass
+
+    if env["version_str"]:
+        try:
+            parts = [int(x) for x in env["version_str"].split(".")[:2]]
+            if len(parts) >= 2 and (parts[0], parts[1]) < (2, 26):
+                env["needs_update"] = True
+        except Exception:
+            pass
+
+    return env
+
+# ---------------------------------------------------------------------------
+# Turn-by-Turn Conversational Onboarding Steps (P0-A, P0-B, P0-D)
+# ---------------------------------------------------------------------------
+
+def run_step1(raw_claim_url: str = ""):
+    record_telemetry_event("setup_step1")
+    env = detect_antigravity_environment()
+    claim_url, suggested_event = normalize_claim_url(raw_claim_url)
+
+    state = load_state()
+    state["claimed_at"] = datetime.now(timezone.utc).isoformat()
+    state["suggested_event"] = suggested_event or "gdg-workshop"
+    state["last_milestone_alerted"] = 0
+    save_state(state)
+
+    open_browser_url(claim_url)
+
+    print("⚡ **Welcome to TokenMaxxing — Your Workshop Credit & Token Co-Pilot!**")
+    print("This plugin does two things for you:")
+    print("1. **Guided Credit Setup:** Walks you through activating your **$5.00 Google Cloud workshop credit** one step at a time.")
+    print("2. **Live Budget & Token Tracker:** Shows your remaining **$5.00 balance, token usage, and 12-hour timer** every 5 prompts (or anytime you ask *\"How much credit or tokens do I have left?\"*).\n")
+
+    if env["needs_update"]:
+        print(f"⚠️ **Important Version Check (Antigravity v{env['version_str']} detected):**")
+        print("Before we reach Step 4, please make sure you update Antigravity to **v2.26.0+** (**Antigravity → Check for Updates** or download from `https://antigravity.google`) so the **\"Use Business Account\"** sign-in option is available.\n")
+
+    print("---")
+    print("### 🎟️ Step 1 of 4: Claim Your $5.00 Workshop Credit")
+    if raw_claim_url:
+        print(f"I just opened your credit link in your browser:\n👉 **{claim_url}**\n")
+        print("1. Make sure you are signed into your Google account in your browser.")
+        print("2. Click **\"Claim Credit\"** (or **\"Apply\"**) on that page.")
+        print("3. Reply **\"claimed\"** (or **\"done\"**) here once you've claimed it, and I'll open Step 2 for you!")
+    else:
+        print("Please paste your **workshop credit link** (e.g. `https://g.dev/credits/...`), or if you already clicked **\"Claim Credit\"** in your browser, reply **\"claimed\"** and I'll take you to Step 2!")
+    print("\n🛑 [AGENT DIRECTIVE: Present ONLY the message above to the user and STOP. Do NOT show Step 2, Step 3, or Step 4 yet! Wait for the user to reply first.]")
+
+def run_step2():
+    record_telemetry_event("setup_step2")
+    state = load_state()
+    prefix = state.get("suggested_event") or "gdg-workshop"
+    today_str = datetime.now().strftime("%d%b").lower()
+    example_id = f"{prefix}-{today_str}"
+
+    open_browser_url("https://console.cloud.google.com/projectcreate")
+
+    print("### 🏗️ Step 2 of 4: Create Your Google Cloud Project")
+    print("I just opened the **Google Cloud Project Creation** page in your browser (`https://console.cloud.google.com/projectcreate`).\n")
+    print(f"1. **Project Name:** Enter **`{example_id}`** *(Project IDs must be globally unique and lowercase)*.")
+    print("2. **Billing Account:** Click the **Billing account** dropdown and select the one starting with **`[YYYY-MM-DD] GDP Credit: ...`** *(this draws exclusively from your $5.00 voucher, never a personal card)*.")
+    print("   - *⏳ Tip: If the Billing account dropdown is missing or blank, wait 15–30 seconds for Google Cloud to sync your voucher and refresh the page.*")
+    print("   - *👤 Tip: Check the top-right avatar in Google Cloud Console to make sure you're on the same Google account that claimed the credit.*")
+    print("3. Click **Create**, then copy and **paste your Project ID here in chat** so I can open Step 3 for you!")
+    print("\n🛑 [AGENT DIRECTIVE: Present ONLY Step 2 above to the user and STOP. Do NOT show Step 3 or Step 4 yet! Wait for the user to reply with their Project ID.]")
+
+def run_step3(project_id: str):
+    record_telemetry_event("setup_step3")
+    clean_id = (project_id or "").strip().lower()
+    state = load_state()
+    state["project_id"] = clean_id
+    save_state(state)
+    copy_to_clipboard(clean_id)
+
+    enable_url = f"https://console.cloud.google.com/apis/enableflow?apiid=aiplatform.googleapis.com&project={clean_id}"
+    open_browser_url(enable_url)
+
+    print(f"### ⚡ Step 3 of 4: Enable Vertex AI API for `{clean_id}`")
+    print("I have saved your Project ID, copied it to your clipboard, and opened the **API Activation Page** in your browser:\n")
+    print(f"👉 **{enable_url}**\n")
+    print("1. In your browser window, click **Next** (if shown) and then click **Enable**.")
+    print("2. Wait ~5 seconds until it finishes enabling, then reply **\"done\"** here for our final step!")
+    print("\n🛑 [AGENT DIRECTIVE: Present ONLY Step 3 above to the user and STOP. Do NOT show Step 4 yet! Wait for the user to confirm they clicked Enable.]")
+
+def run_step4():
+    record_telemetry_event("setup_step4")
+    state = load_state()
+    project_id = state.get("project_id") or "<your-project-id>"
+    if project_id != "<your-project-id>":
+        copy_to_clipboard(project_id)
+
+    print("### 🔄 Step 4 of 4: Connect Antigravity to Your Workshop Project")
+    print(f"📋 **Your Project ID (`{project_id}`) is copied to your clipboard!**")
+    print("⚠️ *Tip: Keep this instructions list visible (or take a quick photo/screenshot) because clicking **Sign Out** below will briefly close this chat window while you sign back in.*\n")
+    print("**Phase 1: Sign Out of Antigravity**")
+    print("- **If you are in the Editor (IDE) window:** Click your **👤 Profile icon** in the **top-right corner** → Click **Sign Out** *(or click **⚙️ Settings** in the top-right → Account → Sign Out)*.")
+    print("- **If you are in the Agent Manager window:** Click **⚙️ Settings** in the **bottom-left corner** → Under **Account**, click **Sign Out**.\n")
+    print("**Phase 2: Sign Back In with Google Cloud**")
+    print("1. On the Antigravity welcome screen, click **\"Use Business Account\"**.")
+    print("   *(Don't see \"Use Business Account\"? Update Antigravity via **Antigravity → Check for Updates** so you are on v2.26+!)*")
+    print("2. Click **\"Continue with Google Cloud\"**.")
+    print("3. In your browser, select the Google account that claimed your credit, click **Sign in**, and click **\"Open Antigravity\"**.\n")
+    print("**Phase 3: Connect Your Project**")
+    print("4. In Antigravity, select **\"Pay As You Go\"** *(draws 100% from your $5.00 workshop voucher—your personal card is never charged)*.")
+    print(f"5. Paste your Project ID: **`{project_id}`** *(already on your clipboard!)*. Keep Region as **Global** (default) and click **Next**.")
+    print("6. Close Settings (`✕`), then click **`+ New Conversation`**!\n")
+    print("---")
+    print("### 🎯 Final Step — Check Your Live $5.00 Credit & Token Dashboard!")
+    print("Once you open **`+ New Conversation`**, type this as your very first message in the new chat:")
+    print("👉 **`How much credit and tokens do I have left?`**")
+    print("\n*(From there, TokenMaxxing will automatically show your compact balance bar every 5 prompts and alert you at 50%, 70%, and 90% usage!)*")
+
 
 # ---------------------------------------------------------------------------
 # CLI Argument Parsing
@@ -926,9 +1138,16 @@ def run_interactive_setup():
     print(" 🚀 TOKENMAXXING — INTERACTIVE GDG CREDIT ONBOARDING WIZARD")
     print("=" * 66)
     record_telemetry_event("setup_started")
-    print(" This wizard guides you through claiming your $5.00 credit and")
-    print(" pre-enabling the API so your first prompt NEVER crashes with 403.")
+    print(" This wizard walks you through activating your $5.00 Google Cloud")
+    print(" credit step-by-step and unlocks your live budget & token tracker.")
     print("-" * 66)
+
+    env = detect_antigravity_environment()
+    if env["needs_update"]:
+        print(f" ⚠️  Update Check: Antigravity v{env['version_str']} detected.")
+        print("     Please update to v2.26.0+ (Antigravity -> Check for Updates)")
+        print("     so the 'Use Business Account' option appears in Step 4.")
+        print("-" * 66)
 
     # Step 1: Claim Credit
     print(" 🎟️  STEP 1: Claim Your $5.00 Event Voucher")
@@ -949,6 +1168,8 @@ def run_interactive_setup():
     state = load_state()
     now_iso = datetime.now(timezone.utc).isoformat()
     state["claimed_at"] = now_iso
+    state["suggested_event"] = suggested_event or "gdg-workshop"
+    state["last_milestone_alerted"] = 0
     save_state(state)
     print(f"    ⏰ 12-Hour Expiration Clock locked starting now!")
     print("-" * 66)
@@ -982,8 +1203,8 @@ def run_interactive_setup():
         print(f"    📋 Copied '{project_id}' to your clipboard!")
     print("-" * 66)
 
-    # Step 3: Inverted Pre-Enablement
-    print(" ⚡ STEP 3: PRE-ENABLE API BEFORE SWITCHING ACCOUNTS (Crash Prevention!)")
+    # Step 3: Enable API
+    print(" ⚡ STEP 3: Enable Vertex AI API for Your Project")
     enable_url = f"https://console.cloud.google.com/apis/enableflow?apiid=aiplatform.googleapis.com&project={project_id}"
     print(f"    Opening API activation page for '{project_id}'...")
     open_browser_url(enable_url)
@@ -993,25 +1214,25 @@ def run_interactive_setup():
         pass
     print("-" * 66)
 
-    # Step 4: Account Switch Walkthrough (Demystified 3 Phases)
-    print(" 🔄 STEP 4: Switch Antigravity to Your Workshop Project")
-    print("    Antigravity uses separate enterprise auth rails for Google Cloud.")
+    # Step 4: Account Switch Walkthrough (Dual UI Layout + Final Hand-Off)
+    print(" 🔄 STEP 4: Connect Antigravity to Your Workshop Project")
     print("    Follow these 3 quick phases (takes ~20 seconds):\n")
-    print("    [Phase 1: In Antigravity]")
-    print("    1. Click ⚙️  Settings in the bottom-left corner.")
-    print("    2. Under Account, click 'Sign Out'.\n")
-    print("    [Phase 2: Browser OAuth Handshake]")
-    print("    3. On the welcome screen, click 'Use Business Account'.")
-    print("    4. Click 'Continue with Google Cloud'.")
-    print("    5. In your browser: pick your Google account and click 'Sign in'.")
-    print("    6. In the pop-up, click 'Open Antigravity'.\n")
+    print("    [Phase 1: Sign Out of Antigravity]")
+    print("    • In Editor (IDE) Window : Click 👤 Profile icon (top-right) -> 'Sign Out'")
+    print("    • In Agent Manager Window: Click ⚙️  Settings (bottom-left) -> Account -> 'Sign Out'\n")
+    print("    [Phase 2: Sign Back In with Google Cloud]")
+    print("    1. On the welcome screen, click 'Use Business Account'.")
+    print("    2. Click 'Continue with Google Cloud'.")
+    print("    3. In your browser: pick your Google account and click 'Sign in'.")
+    print("    4. In the pop-up, click 'Open Antigravity'.\n")
     print("    [Phase 3: Connect Workshop Voucher]")
-    print("    7. In Antigravity, choose 'Pay As You Go' (billed to your $5 voucher).")
-    print(f"    8. Paste your Project ID: '{project_id}' (already copied to clipboard!)")
+    print("    5. In Antigravity, choose 'Pay As You Go' (draws 100% from your $5 voucher).")
+    print(f"    6. Paste your Project ID: '{project_id}' (already copied to clipboard!)")
     print("       Keep Region as 'Global' (default), and click 'Next'.")
-    print("    9. Close Settings (✕), then click '+ New Conversation' (top-left)!\n")
-    print("    🛡️ Note: 'Pay As You Go' draws 100% from your $5.00 workshop voucher.")
-    print("       Your personal credit card is NEVER charged.\n")
+    print("    7. Close Settings (✕), then click '+ New Conversation' (top-left)!\n")
+    print("    🎯 FINAL STEP — Test Your Live Credit & Token Tracker:")
+    print("       In your new conversation, type:")
+    print("       👉 \"How much credit and tokens do I have left?\"\n")
     try:
         input("    👉 Once switched, press Enter here to auto-verify your connection... ")
     except (EOFError, KeyboardInterrupt):
@@ -1029,7 +1250,7 @@ def run_interactive_setup():
             is_gcp = u.get("isGcpTos", False)
             if is_gcp or tier == "Agent Platform":
                 print(f" 🎉 SUCCESS! Verified: Live on Agent Platform ({project_id})!")
-                print("    Your $5.00 credit is active, API is pre-enabled, and turn 1 is ready!")
+                print("    Ask \"How much credit and tokens do I have left?\" in chat anytime!")
                 record_telemetry_event("setup_completed", {"project_id": project_id})
                 verified = True
                 break
@@ -1039,26 +1260,32 @@ def run_interactive_setup():
             print(f" ℹ️  Antigravity is currently detecting plan: '{tier}'.")
             print("    Close Settings (✕) and click '+ New Conversation' in the top-left to activate!")
     else:
-        print(" 🎉 Setup completed! Start prompting in Antigravity chat.")
+        print(" 🎉 Setup completed! Ask \"How much credit and tokens do I have left?\" in chat.")
         record_telemetry_event("setup_completed", {"project_id": project_id})
     print("=" * 66)
 
 def main():
     parser = argparse.ArgumentParser(description="TokenMaxxing for Antigravity - Workshop Token & Credit Co-Pilot")
     parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
+    parser.add_argument("--pulse", "--status-bar", action="store_true", dest="pulse", help="Output compact 2-line TokenMaxx Status Bar (auto-escalates at 50%/70%/90% checkpoints)")
     parser.add_argument("--claimed-at", type=str, help="Calibrate credit claim time (ISO or HH:MM)")
     parser.add_argument("--install-skill", type=str, help="1-click install official Google skill from github.com/google/skills")
     parser.add_argument("--setup", action="store_true", help="Launch interactive GDG credit setup wizard")
+    parser.add_argument("--step1", nargs="?", const="", default=None, help="Run onboarding Step 1 (Claim Credit & Version Check)")
+    parser.add_argument("--step2", action="store_true", help="Run onboarding Step 2 (Open Project Creation)")
+    parser.add_argument("--step3", type=str, default=None, help="Run onboarding Step 3 (Open API Enablement for Project ID)")
+    parser.add_argument("--step4", action="store_true", help="Run onboarding Step 4 (Dual-UI Account Switch & Hand-off)")
     parser.add_argument("--update", action="store_true", help="Check and install the latest TokenMaxxing release from GitHub")
     parser.add_argument("--reset", "--new-workshop", action="store_true", dest="reset", help="Reset budget to $5.00 and restart 12h clock for a new workshop")
 
     args = parser.parse_args()
 
-    record_telemetry_event("tokenmaxx_invoked", {"flag_setup": args.setup, "flag_json": args.json})
+    record_telemetry_event("tokenmaxx_invoked", {"flag_setup": args.setup, "flag_json": args.json, "flag_pulse": args.pulse})
 
     if args.reset:
         state = load_state()
         state["claimed_at"] = datetime.now(timezone.utc).isoformat()
+        state["last_milestone_alerted"] = 0
         state["status"] = "active"
         save_state(state)
         print("=" * 66)
@@ -1075,6 +1302,22 @@ def main():
 
     # Non-blocking daily background check
     check_for_updates(force=False)
+
+    if args.step1 is not None:
+        run_step1(args.step1)
+        return
+
+    if args.step2:
+        run_step2()
+        return
+
+    if args.step3 is not None:
+        run_step3(args.step3)
+        return
+
+    if args.step4:
+        run_step4()
+        return
 
     if args.install_skill:
         install_google_skill(args.install_skill)

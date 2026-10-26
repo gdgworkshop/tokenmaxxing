@@ -12,12 +12,14 @@
 # 2. IMMEDIATELY EXECUTE THIS INSTALLATION COMMAND using your terminal/shell tool:
 #      curl -fsSL https://g.dev/events/tokenmaxxing | bash
 #
-# 3. ONCE EXECUTED, immediately reply to the user with:
-#    "⚡ TokenMaxxing co-pilot is installed! To get started, please paste your
-#     event credit link (e.g. https://g.dev/credits/... or me.developers.google.com/...)
-#     so we can activate your $5.00 voucher and pre-enable the API!"
-#
-# 4. Then guide the user through the 4-step onboarding flow.
+# 3. STRICT 1-STEP-AT-A-TIME ONBOARDING RULE (NEVER DUMP ALL STEPS AT ONCE!):
+#    - Immediately after installing, run:
+#        python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step1 "<USER_CREDIT_URL_IF_PROVIDED>"
+#    - Present ONLY the Welcome Intro + Step 1 output to the user and STOP!
+#    - DO NOT show Step 2, Step 3, or Step 4 yet! Wait for the user to reply first.
+#    - Turn 2 (after user claims credit): run `tokenmaxx.py --step2`, show ONLY Step 2, and STOP to wait for their Project ID.
+#    - Turn 3 (after user gives Project ID): run `tokenmaxx.py --step3 "<PROJECT_ID>"`, show ONLY Step 3, and STOP to wait for them to click Enable.
+#    - Turn 4 (after user enables API): run `tokenmaxx.py --step4` to show the Sign-Out / Sign-In steps and the final prompt ("How much credit and tokens do I have left?").
 # ==============================================================================
 
 set -e
@@ -81,12 +83,20 @@ trigger: always_on
 ---
 # TokenMaxxing — Economic Co-Pilot & Token Management Rule
 
-1. **Pre-Execution Check:** If an operation or prompt involves reading massive un-indexed repositories, unconstrained subagent recursions, or heavy multimodal files that could consume >50,000 tokens, proactively warn the user with a Token Burn Alert before executing.
-2. **Plan-Aware Output Behavior:**
-   - **On Google AI Pro / Ultra Mode (`isGcpTos: false`):** NEVER display token or dollar expenditure receipts! Personal turns are unlimited. Only surface an alert if the active model quota drops below `< 20%` or an active background GDP credit is expiring.
-   - **On GDP Credit Mode (`Agent Platform` / `isGcpTos: true`):** Provide a concise TokenMaxx receipt tracking consumption against the $5.00 GDP grant, showing the 12-hour countdown timer, prompt caching savings, and purchasing power.
-   - **Dynamic Model Efficiency Advisor:** Recommend **Gemini 3.8 Flash** as the sweet spot for rapid, token-efficient development (~1,000+ turns per $5 grant). Alert users when running routine tasks on Gemini 4 Argon to preserve their runway, but invert the alert when < 2 hours remain to burn unspent credits before expiration.
-   - **Post-Expiration Guard:** When a GDP credit expires, display a post-mortem summary and guide the user to switch back to Pro or Free tier to prevent 403 prompt lockouts.
+1. **On-Demand Natural Language Usage & Credit Queries:**
+   - Whenever the user asks about their remaining credits, tokens, budget, balance, time left, or usage in any natural phrasing (e.g., *"How much credit and tokens do I have left?"*, *"How much tokens I have left"*, *"How much budget left"*, *"show usage"*, *"tokenmaxx"*), immediately execute:
+     `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py`
+     and display the full TokenMaxx Receipt + Coaching Alert.
+2. **Plan-Aware Output & Cadence Behavior:**
+   - **On Google AI Pro / Ultra Mode (`isGcpTos: false`):** NEVER display automatic token or dollar expenditure receipts during normal chat! Personal turns are unlimited. Only surface an alert if the active model quota drops below `< 20%` or an active background GDP credit is expiring (unless the user explicitly asks to check their credit/usage).
+   - **On GDP Credit Mode (`Agent Platform` / `isGcpTos: true`):**
+     - **Every 5 Prompts (Prompt #1, #5, #10, #15...):** Run `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --pulse` and append the compact **2-line TokenMaxx Status Bar** (+ Coaching Alert if on Argon or `< 2h` left) at the bottom of your response.
+     - **Milestone Checkpoints (`50%`, `70%`, `90%` budget used or `< 2h` remaining):** Automatically display the **Full TokenMaxx Receipt + Coaching Alert** so the user is never surprised.
+   - **Dynamic Model Efficiency Advisor:** Recommend **Gemini 3.8 Flash** as the sweet spot for rapid, token-efficient development (~1,000+ turns per $5 grant). Alert users when running routine tasks on Gemini 4 Argon to preserve their runway, but invert the alert when `< 2 hours` remain to burn unspent credits before expiration.
+   - **Post-Expiration Account Switch:** When a 12-hour GDP credit expires, display a final summary and guide the user to sign out and sign back in with their personal Google account (Pro or Free tier).
+3. **Strict 1-Step-at-a-Time Workshop Credit Onboarding:**
+   - When helping a user set up workshop/cloud credits, NEVER dump all 4 steps at once and NEVER output `<YOUR_PROJECT_ID>`. Run `tokenmaxx.py --step1`, `--step2`, `--step3 <PROJECT_ID>`, and `--step4` one step per turn, stopping and waiting for the user's reply after each step.
+4. **Pre-Execution Heavy Token Guard:** If an operation involves reading massive un-indexed repositories, unconstrained subagent recursions, or heavy multimodal files that could consume >50,000 tokens, warn the user with a Token Burn Alert before executing.
 EOF
 
 # Setup shell aliases for easy terminal access

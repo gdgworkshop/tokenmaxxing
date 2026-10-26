@@ -23,8 +23,12 @@ flowchart TD
 
 ### 1. 🎟️ GDP Workshop Credit Mode (`Agent Platform` / `isGcpTos: true`)
 - **Starting Budget:** \$5.00 promotional credit voucher.
-- **12-Hour Destruction Countdown:** Tracks the strict 12-hour lifespan of the temporary billing account.
-- **Calibrated Multi-Conversation Accounting:** Aggregates tokens across **all** conversations using `API_PROVIDER_GOOGLE_VERTEX`, accurately pricing Flash vs. Argon.
+- **12-Hour Countdown:** Tracks the strict 12-hour lifespan of the temporary billing account.
+- **Cadence — Pulse Every 5 Prompts + Milestone Receipts (`50%`, `70%`, `90%`) + On-Demand:**
+  - **Every 5 Prompts (Prompt #1, #5, #10, #15...):** Run `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --pulse` and append the compact **2-line TokenMaxx Status Bar** (+ Coaching Alert if on Argon or `< 2h` left).
+  - **At 50%, 70%, and 90% Budget Used (or `< 2h` remaining):** Automatically display the **Full TokenMaxx Receipt + Coaching Alert**.
+  - **On-Demand Natural Language Triggers:** Whenever the user asks *"How much credit and tokens do I have left?"*, *"How much tokens I have left"*, *"How much budget left"*, *"show usage"*, or *"tokenmaxx"*, run `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py` and display the full receipt immediately.
+- **Calibrated Multi-Conversation Accounting:** Aggregates tokens across **all** conversations in the active workshop window using `API_PROVIDER_GOOGLE_VERTEX`, accurately pricing Flash vs. Argon.
 - **Google Cloud Invoicing Waterfall:**
   ```text
   🧾 Production Cloud Billing Reconciliation:
@@ -69,33 +73,55 @@ TokenMaxxing establishes **Gemini 3.8 Flash** as the sweet spot for velocity, re
 
 ---
 
-## 🛡️ Post-Expiration Handling & Safe Downgrade (`F16`)
+## 🛡️ Post-Expiration Handling & Safe Account Switch (`F16`)
 
 When Google Cloud marks a credit **`🔴 Expired`** at the 12-hour mark:
 1. **Post-Mortem Receipt:** Summarizes final usage (e.g. *"\$1.02 utilized \| \$3.98 expired unspent"*).
-2. **Crash Prevention Guard:** Immediately instructs the user to switch their Antigravity license from `Agent Platform` back to `Google AI Pro` or `Free Tier` to prevent fatal `403 BILLING_DISABLED` prompt lockouts.
+2. **Account Switch Guard:** Immediately instructs the user to sign out of `Agent Platform` and sign back into their personal Google account (`Google AI Pro` or `Free Tier`) so they can continue chatting seamlessly.
 
 ---
 
-## 🚀 Interactive GDP Credit Onboarding Wizard (`F13`, `F14`)
+## 🚀 Turn-by-Turn Interactive GDP Credit Onboarding (`P0-A`, `P0-B`, `P0-D`)
 
-Solves the **#1 fatal bug** in legacy workshop documentation where switching to `Agent Platform` *before* enabling the API caused a permanent `403 PERMISSION_DENIED` crash:
+> [!IMPORTANT]
+> **STRICT 1-STEP-AT-A-TIME RULE FOR AI AGENTS:**
+> **NEVER dump all 4 onboarding steps in a single message!** And **NEVER** print a placeholder like `<YOUR_PROJECT_ID>`.
+> You **MUST** guide the user **one step per turn**, automatically opening the browser page for them via `tokenmaxx.py` and **waiting for their reply** before moving to the next step!
 
-1. **Step 1 (Claim Credit):**
-   - Normalizes any event URL, shortlink (`g.dev/credits/...`), or raw event slug into `https://me.developers.google.com/benefits/claim/<slug>`.
-   - Clicking locks exact 12-hour timestamp in `state.json`.
-2. **Step 2 (Create Project & Select Billing):**
-   - Opens `https://console.cloud.google.com/projectcreate`.
-   - **Naming Pro-Tip:** Auto-suggests `<event-slug>-<date>` (e.g. `gdg-jakarta-24oct`) to guarantee global uniqueness and prevent naming collision errors. Reminds user that Project IDs are lowercase.
-   - **Billing Account Pro-Tip:** Explicitly instructs user to click the **Billing account** dropdown and select the account starting with **`[YYYY-MM-DD] GDP Credit: ...`** so it draws exclusively from the \$5.00 grant and never bills a personal card. Auto-copies `project_id` to clipboard.
-   - **Sync Buffer Check:** Notes that Google Cloud takes 15–30 seconds to sync new vouchers; if the billing dropdown is blank, refresh after 15 seconds.
-   - **Account Match Check:** Reminds attendee to ensure their Cloud Console browser profile matches the Google account that claimed the voucher.
-3. **Step 3 (Pre-Enable API *Before* Switching!):** Opens API enableflow *while still on the working account* so the API is live prior to switching.
-4. **Step 4 (3-Phase Account Switch):**
-   - **Phase 1 (In Antigravity):** Click **⚙️ Settings** (bottom-left) → Under Account, click **Sign Out**.
-   - **Phase 2 (Browser OAuth Handshake):** Click **"Use Business Account"** → **"Continue with Google Cloud"** → Select Google Account in browser → Click **"Sign in"** → Click **"Open Antigravity"**.
-   - **Phase 3 (Connect Project):** Choose **"Pay As You Go"** (draws from $5 voucher) → Paste Project ID → Keep Region **Global** → Click **"Next"** → Close Settings → Click **`+ New Conversation`**!
-5. **Step 5 (Verify):** Queries `GetUserStatus` over local language server to verify active `Agent Platform` connection.
+### Turn 1 — Welcome Education + Step 1 (Claim Credit & Version Check)
+Run:
+```bash
+python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step1 "<USER_CREDIT_URL_IF_PROVIDED>"
+```
+- This automatically checks if the user's Antigravity version is `>= 2.26.0` (warning them to update if older), locks the 12-hour timer, opens their credit link in the browser, and outputs the **Welcome Education + Step 1 prompt**.
+- **🛑 STOP & WAIT:** Present ONLY the Step 1 output and wait for the user to paste their link or reply `"claimed"` / `"done"`.
+
+### Turn 2 — Step 2 (Create Google Cloud Project & Select GDP Credit Billing)
+Once the user confirms they claimed their credit, run:
+```bash
+python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step2
+```
+- This automatically opens `https://console.cloud.google.com/projectcreate` in their browser and gives them the suggested lowercase Project ID and tip to select `[YYYY-MM-DD] GDP Credit: ...` in the Billing Account dropdown.
+- **🛑 STOP & WAIT:** Present ONLY Step 2 and wait for the user to reply with their created **Project ID**.
+
+### Turn 3 — Step 3 (Enable Vertex AI API for Their Real Project ID)
+Once the user replies with their `<PROJECT_ID>`, run:
+```bash
+python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step3 "<PROJECT_ID>"
+```
+- This saves `<PROJECT_ID>` to `state.json`, copies it to their clipboard, and automatically opens `https://console.cloud.google.com/apis/enableflow?apiid=aiplatform.googleapis.com&project=<PROJECT_ID>` in their browser.
+- **🛑 STOP & WAIT:** Present ONLY Step 3 (with the real pre-filled link) and wait for the user to click **Enable** and reply `"done"`.
+
+### Turn 4 — Step 4 (Dual-UI Account Switch + Final Balance Tracker Hand-Off)
+Once the user confirms the API is enabled, run:
+```bash
+python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step4
+```
+- This re-copies their `<PROJECT_ID>` to the clipboard and outputs the 3-Phase Account Switch instructions covering **both Antigravity window layouts**:
+  - **Editor (IDE) Window:** Top-right **👤 Profile icon** → **Sign Out**
+  - **Agent Manager Window:** Bottom-left **⚙️ Settings** → **Account** → **Sign Out**
+- Ends with the **Final Step Hand-Off** teaching the user to open **`+ New Conversation`** and type:
+  👉 **`How much credit and tokens do I have left?`**
 
 ---
 
@@ -110,18 +136,18 @@ Detects active project frameworks and offers 1-click installation of official sk
 ## 🛠️ CLI Reference
 
 ```bash
-# Display formatted report (auto-detects plan, suppresses tokens on Pro/Ultra)
+# Display full TokenMaxx Receipt (auto-detects plan, suppresses tokens on Pro/Ultra)
 python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py
 
-# Machine-readable JSON output for tools and agents
-python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --json
+# Display compact 2-line TokenMaxx Status Bar (for Every-5-Prompts Pulse; auto-escalates at 50%/70%/90%)
+python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --pulse
 
-# Calibrate exact credit claim timestamp (e.g. 18:40)
-python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --claimed-at "18:40"
+# Turn-by-turn onboarding step helpers (auto-opens browser URLs)
+python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step1 "<claim_url>"
+python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step2
+python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step3 "<project_id>"
+python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step4
 
-# 1-Click install official Google skill
-python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --install-skill gemini-api
-
-# Launch interactive GDP setup wizard
-python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --setup
+# Reset workshop session for a fresh $5.00 voucher and 12h clock
+python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --reset
 ```
