@@ -99,6 +99,11 @@ trigger: always_on
 3. **Strict 1-Step-at-a-Time Workshop Credit Onboarding:**
    - When helping a user set up workshop/cloud credits, NEVER dump all 4 steps at once and NEVER output `<YOUR_PROJECT_ID>`. Run `tokenmaxx.py --step1`, `--step2`, `--step3 <PROJECT_ID>`, and `--step4` one step per turn, stopping and waiting for the user's reply after each step.
 4. **Pre-Execution Heavy Token Guard:** If an operation involves reading massive un-indexed repositories, unconstrained subagent recursions, or heavy multimodal files that could consume >50,000 tokens, warn the user with a Token Burn Alert before executing.
+5. **Official Google Agent Skills Gateway (github.com/google/skills):**
+   - Whenever the user asks to install official Google agent skills (e.g., *"Install Gemini API skill"*, *"Install Firebase skill"*, *"Install cloud run skill"*, *"Install AI skills track"*), run:
+     `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --install-skill <skill_name_or_track>`
+     and confirm the installation with a brief note of what new capabilities were unlocked.
+   - **Contextual JIT Nudge:** When a user starts a project using Flutter (`pubspec.yaml`), Android Compose (`build.gradle.kts`), Firebase (`firebase.json`), or Gemini API in their workshop workspace, gently mention that the matching official Google skill is available if they would like to install it.
 EOF
 
 # Setup shell aliases for easy terminal access

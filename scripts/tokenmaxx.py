@@ -36,7 +36,7 @@ from datetime import datetime, timedelta, timezone
 DEFAULT_BUDGET = 5.00
 CREDIT_LIFESPAN_HOURS = 12
 
-CURRENT_VERSION = "1.0.3"
+CURRENT_VERSION = "1.0.4"
 GITHUB_REPO = os.environ.get("TOKENMAXX_REPO", "saadgh/tokenmaxxing")
 VERSION_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/VERSION"
 RAW_REPO_BASE = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main"
@@ -656,28 +656,74 @@ def open_browser_url(url: str):
     except Exception:
         return False
 
-def install_google_skill(skill_name: str):
-    """
-    Pulls the official skill directory or SKILL.md from github.com/google/skills into ~/.gemini/config/skills/
-    """
-    base_url = f"https://raw.githubusercontent.com/google/skills/main/{skill_name}/SKILL.md"
-    target_dir = Path.home() / ".gemini" / "config" / "skills" / skill_name
+GOOGLE_SKILL_CATEGORIES = ["cloud", "developers", "identity", "analytics", "ads"]
+SKILL_ALIASES = {
+    "gemini": "cloud/gemini-api",
+    "gemini-api": "cloud/gemini-api",
+    "gemini-live": "cloud/gemini-live-api",
+    "firebase": "cloud/firebase-basics",
+    "firebase-basics": "cloud/firebase-basics",
+    "cloud-run": "cloud/cloud-run-basics",
+    "cloudrun": "cloud/cloud-run-basics",
+    "bigquery": "cloud/bigquery-basics",
+    "genkit": "cloud/developing-genkit-js",
+    "developer-knowledge": "developers/retrieving-developer-knowledge",
+    "finding-skills": "developers/finding-google-skills"
+}
+SKILL_TRACKS = {
+    "ai": ["cloud/gemini-api", "cloud/firebase-basics"],
+    "backend": ["cloud/firebase-basics", "cloud/cloud-run-basics"],
+    "cloud": ["cloud/cloud-run-basics", "developers/retrieving-developer-knowledge"],
+}
+
+def install_single_skill(skill_path: str) -> bool:
+    name = skill_path.split("/")[-1]
+    target_dir = Path.home() / ".gemini" / "config" / "skills" / name
     target_file = target_dir / "SKILL.md"
 
-    print(f"📦 Fetching official Google skill '{skill_name}' from GitHub...")
-    try:
-        req = urllib.request.Request(base_url, headers={"User-Agent": "Antigravity-TokenMaxx"})
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            content = resp.read().decode("utf-8")
-            target_dir.mkdir(parents=True, exist_ok=True)
-            with open(target_file, "w", encoding="utf-8") as f:
-                f.write(content)
-            print(f"✅ Successfully installed '{skill_name}' into {target_dir}")
-            return True
-    except Exception as e:
-        print(f"❌ Failed to download skill '{skill_name}': {e}")
-        print("Tip: Check available official skills at https://github.com/google/skills")
-        return False
+    candidates = []
+    if "/" in skill_path:
+        candidates.append(f"https://raw.githubusercontent.com/google/skills/main/skills/{skill_path}/SKILL.md")
+    else:
+        for cat in GOOGLE_SKILL_CATEGORIES:
+            candidates.append(f"https://raw.githubusercontent.com/google/skills/main/skills/{cat}/{skill_path}/SKILL.md")
+        candidates.append(f"https://raw.githubusercontent.com/google/skills/main/{skill_path}/SKILL.md")
+
+    for url in candidates:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Antigravity-TokenMaxx"})
+            with urllib.request.urlopen(req, timeout=4) as resp:
+                if resp.status == 200:
+                    content = resp.read().decode("utf-8")
+                    target_dir.mkdir(parents=True, exist_ok=True)
+                    with open(target_file, "w", encoding="utf-8") as f:
+                        f.write(content)
+                    print(f"✅ Successfully installed official Google skill '{name}' into {target_dir}")
+                    return True
+        except Exception:
+            continue
+
+    print(f"❌ Could not find skill '{skill_path}' on github.com/google/skills")
+    print("   Browse available skills at: https://github.com/google/skills")
+    return False
+
+def install_google_skill(arg: str):
+    """
+    Pulls official skills from github.com/google/skills into ~/.gemini/config/skills/
+    Supports individual skill names, aliases, and curated tracks (ai, backend, cloud).
+    """
+    clean = (arg or "").strip().lower()
+    if clean in SKILL_TRACKS:
+        print(f"📦 Installing '{clean.upper()}' skills track from github.com/google/skills...")
+        success = True
+        for sp in SKILL_TRACKS[clean]:
+            if not install_single_skill(sp):
+                success = False
+        return success
+
+    resolved = SKILL_ALIASES.get(clean, clean)
+    print(f"📦 Fetching official Google skill '{clean}' from GitHub...")
+    return install_single_skill(resolved)
 
 # ---------------------------------------------------------------------------
 # In-Engine Self-Updater & Remote Version Sync (F24)
@@ -971,6 +1017,13 @@ def run_tokenmaxx(args):
     print(" 🛒 WHAT YOUR REMAINING CREDIT CAN DO:")
     print(f" • ~{turns_flash:,} interactive turns on Gemini 3.8 Flash, OR")
     print(f" • ~{turns_argon} deep reasoning refactors on Gemini 4 Argon")
+    print("-" * 66)
+    print(" 🧩 OFFICIAL GOOGLE AGENT SKILLS GATEWAY (github.com/google/skills):")
+    print(" Supercharge your project with 1-click official skills:")
+    print(" • 🔥 AI & Backend : gemini-api | firebase-basics")
+    print(" • 📱 Mobile       : flutter | jetpack-compose-performance")
+    print(" • ☁️ Cloud & Web   : cloud-run | developer-knowledge")
+    print(" (To install, say \"Install <name>\" or run: tokenmaxx --install-skill <name>)")
     print("-" * 66)
     print(" 💬 Tip: Ask \"How much credit or tokens do I have left?\" anytime!")
     print("    (TokenMaxx also pulses every 5 prompts & alerts at 50%, 70%, 90%)")

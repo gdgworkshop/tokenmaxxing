@@ -128,9 +128,14 @@ python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step4
 
 ## 🧩 Official Google Agent Skills Gateway (`F15`)
 
-Detects active project frameworks and offers 1-click installation of official skills from [`github.com/google/skills`](https://github.com/google/skills):
-- **Detected Tech:** Flutter (`flutter/skills`), Android Compose (`android-profiler`, `jetpack-compose-performance`), Firebase (`firebase-firestore`, `firebase-crashlytics`), Genkit, Gemini API (`gemini-api`, `gemini-live-api`), Cloud Run.
-- **1-Click Installation:** Run `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --install-skill <skill_name>`.
+Equip your project with official Google Agent Skills from [`github.com/google/skills`](https://github.com/google/skills) in 1 click (0 installation tokens, zero bloat):
+- **Curated Workshop Tracks:**
+  - 🔥 **AI & Backend Track (`--install-skill ai`):** `gemini-api` + `firebase-basics`
+  - 📱 **Mobile Track (`--install-skill mobile`):** `flutter` + `jetpack-compose-performance`
+  - ☁️ **Cloud Track (`--install-skill cloud`):** `cloud-run` + `retrieving-developer-knowledge`
+- **1-Click Installation:**
+  - Run: `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --install-skill <name_or_track>`
+  - Or simply tell Antigravity in chat: *"Install gemini-api skill"* or *"Install AI skills track"*.
 
 ---
 
