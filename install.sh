@@ -36,7 +36,7 @@ RESET="\033[0m"
 
 echo ""
 echo -e "${CYAN}${BOLD}  ⚡ TOKENMAXXING FOR GOOGLE ANTIGRAVITY${RESET}"
-echo -e "${CYAN}  The Economic Co-Pilot & Token Management Engine${RESET}"
+echo -e "${CYAN}  The GDG Workshop & Economic Co-Pilot${RESET}"
 echo -e "  --------------------------------------------------"
 echo ""
 

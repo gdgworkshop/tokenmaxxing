@@ -1,11 +1,11 @@
 ---
 name: tokenmaxxing
-description: The official economic co-pilot and token management engine for Antigravity. Detects real-time user plan (Agent Platform GDP Credit vs. Google AI Pro/Ultra vs. Free Tier), tracks the strict 12-hour credit expiration countdown, provides ground-truth calibrated multi-conversation token invoicing, advises on model efficiency (Gemini 3.8 Flash sweet spot), guards against model quota exhaustion, and guides interactive GDG workshop onboarding.
+description: The GDG Workshop & Economic Co-Pilot for Google Antigravity. Detects real-time user plan (Agent Platform GDP Credit vs. Google AI Pro/Ultra vs. Free Tier), tracks the strict 12-hour credit expiration countdown, provides ground-truth calibrated multi-conversation token invoicing, advises on model efficiency (Gemini 3.8 Flash sweet spot), guards against model quota exhaustion, and guides interactive GDG workshop onboarding.
 ---
 
 # ⚡ TokenMaxxing for Google Antigravity
 
-**TokenMaxxing** is the economic co-pilot and token management engine for Google Antigravity. It ensures Google Developer Group (GDG) workshop attendees, hackathon participants, and everyday developers get maximum intelligence and runway from every token.
+**TokenMaxxing** is the GDG Workshop & Economic Co-Pilot for Google Antigravity. It ensures Google Developer Group (GDG) workshop attendees, hackathon participants, and developers get maximum intelligence and runway from every token.
 
 ---
 

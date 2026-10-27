@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 tokenmaxx.py - TokenMaxxing for Google Antigravity
-The official economic co-pilot and token management engine for GDG workshops & Antigravity power users.
+The GDG Workshop & Economic Co-Pilot for Google Antigravity.
 
 Features:
 - Real-time plan detection (Agent Platform GDP Credit vs. Google AI Pro/Ultra vs. Free Tier)
@@ -81,7 +81,22 @@ PRICING_TABLE = {
 
 SKILLS_DIR = Path.home() / ".gemini" / "config" / "skills" / "tokenmaxxing"
 STATE_FILE = SKILLS_DIR / "state.json"
-APP_STORAGE_PATH = Path.home() / "Library" / "Application Support" / "Antigravity" / "app_storage.json"
+def get_app_storage_path() -> Path:
+    """Returns OS-aware path to Antigravity app_storage.json"""
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "Antigravity" / "app_storage.json"
+    elif sys.platform == "win32":
+        app_data = os.environ.get("APPDATA")
+        if app_data:
+            return Path(app_data) / "Antigravity" / "app_storage.json"
+        return Path.home() / "AppData" / "Roaming" / "Antigravity" / "app_storage.json"
+    else:  # Linux and Unix-like
+        xdg_config = os.environ.get("XDG_CONFIG_HOME")
+        if xdg_config:
+            return Path(xdg_config) / "Antigravity" / "app_storage.json"
+        return Path.home() / ".config" / "Antigravity" / "app_storage.json"
+
+APP_STORAGE_PATH = get_app_storage_path()
 BRAIN_DIR = Path.home() / ".gemini" / "antigravity" / "brain"
 CONVERSATIONS_DIR = Path.home() / ".gemini" / "antigravity" / "conversations"
 
@@ -115,63 +130,133 @@ def save_state(state: dict):
 
 def discover_language_server():
     """
-    Finds Antigravity's active language_server process, extracts CSRF token,
-    and identifies the listening HTTP port.
+    Cross-platform discovery of Antigravity's active language_server process.
+    Extracts CSRF token and identifies the loopback listening HTTP port
+    on macOS, Windows, and Linux.
     """
-    try:
-        ps_out = subprocess.check_output(["ps", "aux"], text=True)
-    except Exception:
-        return None, None, None
-
     pid = None
     csrf_token = None
 
-    for line in ps_out.splitlines():
-        if "language_server" in line and "--csrf_token" in line:
-            parts = line.split()
-            pid = parts[1]
-            match = re.search(r"--csrf_token\s+([a-f0-9\-]+)", line)
-            if match:
-                csrf_token = match.group(1)
-            break
+    # Step 1: Process identification & CSRF token extraction
+    if sys.platform == "win32":
+        # Windows: Query Win32_Process via PowerShell or WMIC
+        try:
+            ps_cmd = (
+                "powershell -NoProfile -Command "
+                "\"Get-CimInstance Win32_Process | "
+                "Where-Object { $_.CommandLine -like '*language_server*' -and $_.CommandLine -like '*csrf_token*' } | "
+                "Select-Object ProcessId, CommandLine | ConvertTo-Json\""
+            )
+            out = subprocess.check_output(ps_cmd, shell=True, text=True, stderr=subprocess.DEVNULL)
+            if out.strip():
+                data = json.loads(out)
+                if isinstance(data, list) and len(data) > 0:
+                    data = data[0]
+                if isinstance(data, dict):
+                    pid = str(data.get("ProcessId"))
+                    cmd = data.get("CommandLine", "")
+                    m = re.search(r"--csrf_token[=\s]+([a-f0-9\-]+)", cmd)
+                    if m:
+                        csrf_token = m.group(1)
+        except Exception:
+            try:
+                wmic_out = subprocess.check_output(
+                    "wmic process where \"commandline like '%language_server%' and commandline like '%csrf_token%'\" get processid,commandline /format:list",
+                    shell=True, text=True, stderr=subprocess.DEVNULL
+                )
+                for line in wmic_out.splitlines():
+                    if line.startswith("CommandLine="):
+                        m = re.search(r"--csrf_token[=\s]+([a-f0-9\-]+)", line)
+                        if m:
+                            csrf_token = m.group(1)
+                    elif line.startswith("ProcessId="):
+                        pid = line.split("=")[1].strip()
+            except Exception:
+                pass
+    else:
+        # macOS & Linux: Inspect ps aux
+        try:
+            ps_out = subprocess.check_output(["ps", "aux"], text=True, stderr=subprocess.DEVNULL)
+            for line in ps_out.splitlines():
+                if "language_server" in line and "--csrf_token" in line:
+                    parts = line.split()
+                    pid = parts[1]
+                    match = re.search(r"--csrf_token\s+([a-f0-9\-]+)", line)
+                    if match:
+                        csrf_token = match.group(1)
+                    break
+        except Exception:
+            pass
 
     if not pid or not csrf_token:
         return None, None, None
 
-    # Discover listening TCP ports for this PID
-    try:
-        lsof_out = subprocess.check_output(["lsof", "-nP", "-p", pid, "-iTCP", "-sTCP:LISTEN"], text=True)
-        ports = []
-        for line in lsof_out.splitlines():
-            m = re.search(r"127\.0\.0\.1:(\d+)", line)
-            if m:
-                p = int(m.group(1))
-                if p not in ports:
-                    ports.append(p)
-        
-        # Test candidate ports for GetUserStatus
-        ctx = ssl._create_unverified_context()
-        for port in ports:
-            url = f"http://127.0.0.1:{port}/exa.language_server_pb.LanguageServerService/GetUserStatus"
-            req = urllib.request.Request(
-                url,
-                data=b"{}",
-                headers={
-                    "Content-Type": "application/json",
-                    "x-codeium-csrf-token": csrf_token
-                }
-            )
+    # Step 2: Discover listening TCP ports for this PID
+    ports = []
+    if sys.platform == "win32":
+        try:
+            netstat_out = subprocess.check_output(["netstat", "-ano", "-p", "tcp"], text=True, stderr=subprocess.DEVNULL)
+            for line in netstat_out.splitlines():
+                parts = line.strip().split()
+                if len(parts) >= 5 and parts[3].upper() == "LISTENING" and parts[4] == pid:
+                    m = re.search(r"127\.0\.0\.1:(\d+)", parts[1])
+                    if m:
+                        p = int(m.group(1))
+                        if p not in ports:
+                            ports.append(p)
+        except Exception:
+            pass
+    else:
+        # macOS / Linux: Try lsof
+        try:
+            lsof_out = subprocess.check_output(["lsof", "-nP", "-p", pid, "-iTCP", "-sTCP:LISTEN"], text=True, stderr=subprocess.DEVNULL)
+            for line in lsof_out.splitlines():
+                m = re.search(r"127\.0\.0\.1:(\d+)", line)
+                if m:
+                    p = int(m.group(1))
+                    if p not in ports:
+                        ports.append(p)
+        except Exception:
+            pass
+
+        # Linux fallback: If lsof is unavailable, try ss -tulpn
+        if not ports and sys.platform.startswith("linux"):
             try:
-                with urllib.request.urlopen(req, timeout=1.5, context=ctx) as resp:
-                    if resp.status == 200:
-                        raw = resp.read().decode("utf-8")
-                        data = json.loads(raw)
-                        if "userStatus" in data:
-                            return port, csrf_token, pid
+                ss_out = subprocess.check_output(["ss", "-tulpn"], text=True, stderr=subprocess.DEVNULL)
+                for line in ss_out.splitlines():
+                    if f"pid={pid}" in line or f",{pid}," in line:
+                        m = re.search(r"127\.0\.0\.1:(\d+)", line)
+                        if m:
+                            p = int(m.group(1))
+                            if p not in ports:
+                                ports.append(p)
             except Exception:
-                continue
-    except Exception:
-        pass
+                pass
+
+    if not ports:
+        return None, csrf_token, pid
+
+    # Step 3: Test candidate ports for GetUserStatus
+    ctx = ssl._create_unverified_context()
+    for port in ports:
+        url = f"http://127.0.0.1:{port}/exa.language_server_pb.LanguageServerService/GetUserStatus"
+        req = urllib.request.Request(
+            url,
+            data=b"{}",
+            headers={
+                "Content-Type": "application/json",
+                "x-codeium-csrf-token": csrf_token
+            }
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=1.5, context=ctx) as resp:
+                if resp.status == 200:
+                    raw = resp.read().decode("utf-8")
+                    data = json.loads(raw)
+                    if "userStatus" in data:
+                        return port, csrf_token, pid
+        except Exception:
+            continue
 
     return None, csrf_token, pid
 
@@ -229,6 +314,20 @@ def detect_plan_from_storage():
 # ---------------------------------------------------------------------------
 # Multi-Conversation Token Aggregation & Calibrated Pricing
 # ---------------------------------------------------------------------------
+
+def is_frontier_model(model_str: str) -> bool:
+    """Detects Frontier / Deep Reasoning tier (Argon, Pro, Ultra, Opus, Sonnet)"""
+    if not model_str:
+        return False
+    m = model_str.lower()
+    return any(k in m for k in ["argon", "pro", "ultra", "opus", "sonnet"])
+
+def is_flash_model(model_str: str) -> bool:
+    """Detects High-Efficiency Flash tier (Flash, Haiku)"""
+    if not model_str:
+        return False
+    m = model_str.lower()
+    return any(k in m for k in ["flash", "haiku"])
 
 def parse_transcript_tokens(transcript_path: Path):
     steps = []
@@ -317,7 +416,7 @@ def aggregate_vertex_usage(port: int = None, csrf_token: str = None, claimed_dt 
                             cached_tok = s.get("cache_read_tokens", 0)
                             out_tok = s.get("output_tokens", 0)
 
-                            if "argon" in resp_model.lower():
+                            if is_frontier_model(resp_model):
                                 total_argon_in += in_tok
                                 total_argon_cached += cached_tok
                                 total_argon_out += out_tok
@@ -346,7 +445,7 @@ def aggregate_vertex_usage(port: int = None, csrf_token: str = None, claimed_dt 
                             continue
                         text = blob.decode("latin1", errors="ignore")
                         if "API_PROVIDER_GOOGLE_VERTEX" in text or "gdg-workshop" in text:
-                            is_argon = "gemini-4-argon" in text
+                            is_argon = is_frontier_model(text)
                             if idx < len(steps):
                                 s = steps[idx]
                                 step_time = s.get("created_at")
@@ -539,7 +638,7 @@ def evaluate_model_advisor(current_model: str, hours_left: float, remaining_budg
         }
 
     # Conservation Alert (On Argon with plenty of time on the clock)
-    if "argon" in current_model.lower() and hours_left >= 3.0:
+    if is_frontier_model(current_model) and hours_left >= 3.0:
         return {
             "type": "CONSERVATION_ALERT",
             "title": "💡 Token Efficiency Recommendation",

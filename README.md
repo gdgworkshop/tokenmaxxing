@@ -1,13 +1,6 @@
 # ⚡ TokenMaxxing for Google Antigravity
 
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat-square)](./LICENSE)
-[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square)](https://antigravity.google)
-[![Target](https://img.shields.io/badge/Antigravity-v2.0%2B-purple?style=flat-square)](https://antigravity.google)
-[![Community](https://img.shields.io/badge/Community-Google%20Developer%20Groups-EA4335?style=flat-square&logo=google)](https://developers.google.com/community/gdg)
-[![Tokens Maxxed](https://img.shields.io/badge/Tokens%20Maxxed-3%2C420%20Developers-4285F4?style=flat-square&logo=googlecloud)](https://github.com/saadgh/tokenmaxxing)
-[![Hours Saved](https://img.shields.io/badge/Workshop%20Time%20Saved-855%20Hours-34A853?style=flat-square)](https://github.com/saadgh/tokenmaxxing)
-
-> **The official economic co-pilot and token management engine for Google Antigravity.**  
+> **The GDG Workshop & Economic Co-Pilot for Google Antigravity.**  
 > Designed for Google Developer Group (GDG) workshops, hackathons, and Antigravity power users to eliminate setup friction, protect temporary credits from expiring unspent, and get maximum intelligence out of every token.
 
 *(Also searchable as **tokenmaxing**).*
