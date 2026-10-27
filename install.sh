@@ -19,9 +19,14 @@
 #       event credit link like https://g.dev/credits/... — NEVER pass https://g.dev/events/tokenmaxxing!)
 #    - Present ONLY the Welcome Intro + Step 1 output to the user and STOP!
 #    - DO NOT show Step 2, Step 3, or Step 4 yet! Wait for the user to reply first.
-#    - Turn 2 (after user claims credit): run `tokenmaxx.py --step2`, show ONLY Step 2, and STOP to wait for their Project ID.
-#    - Turn 3 (after user gives Project ID): run `tokenmaxx.py --step3 "<PROJECT_ID>"`, show ONLY Step 3, and STOP to wait for them to click Enable.
-#    - Turn 4 (after user enables API): run `tokenmaxx.py --step4` to show the Sign-Out / Sign-In steps and the final prompt ("How much credit and tokens do I have left?").
+#    - If the user replies with a credit URL (e.g. https://g.dev/credits/... or me.developers.google.com/...):
+#        run `tokenmaxx.py --step1 "<USER_CREDIT_URL>"` to open their credit link in the browser, show the output, and STOP to wait for them to reply "claimed"!
+#    - Once the user confirms they claimed the credit ("claimed" / "done"):
+#        run `tokenmaxx.py --step2`, show ONLY Step 2, and STOP to wait for their lowercase Project ID.
+#    - Once the user gives their lowercase Project ID:
+#        run `tokenmaxx.py --step3 "<PROJECT_ID>"`, show ONLY Step 3, and STOP to wait for them to click Enable.
+#    - Once the user confirms the API is enabled:
+#        run `tokenmaxx.py --step4` to show the Sign-Out / Sign-In steps and the final prompt ("How much credit and tokens do I have left?").
 # ==============================================================================
 
 set -e
@@ -98,6 +103,7 @@ trigger: always_on
    - **Post-Expiration Account Switch:** When a 12-hour GDP credit expires, display a final summary and guide the user to sign out and sign back in with their personal Google account (Pro or Free tier).
 3. **Strict 1-Step-at-a-Time Workshop Credit Onboarding:**
    - When helping a user set up workshop/cloud credits, NEVER dump all 4 steps at once and NEVER output `<YOUR_PROJECT_ID>`. Run `tokenmaxx.py --step1`, `--step2`, `--step3 <PROJECT_ID>`, and `--step4` one step per turn, stopping and waiting for the user's reply after each step.
+   - **CRITICAL:** If `--step1` was run without a credit URL and the user replies by pasting a credit link (e.g. `https://g.dev/credits/...` or `https://me.developers.google.com/...`), you MUST run `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step1 "<USER_CREDIT_URL>"` to open their credit link in the browser first, and wait for them to reply `"claimed"` before running `--step2`!
 4. **Pre-Execution Heavy Token Guard:** If an operation involves reading massive un-indexed repositories, unconstrained subagent recursions, or heavy multimodal files that could consume >50,000 tokens, warn the user with a Token Burn Alert before executing.
 5. **Official Google Agent Skills Gateway (github.com/google/skills):**
    - Whenever the user asks to install official Google agent skills (e.g., *"Install Gemini API skill"*, *"Install Firebase skill"*, *"Install cloud run skill"*, *"Install AI skills track"*), run:
@@ -137,7 +143,7 @@ if [ "${DO_NOT_TRACK}" != "1" ]; then
     CLIENT_ID=$(python3 -c "import hashlib, os, sys; uname = os.environ.get('USER', os.environ.get('USERNAME', 'anon')); print(hashlib.sha256((uname + sys.platform).encode()).hexdigest()[:16])" 2>/dev/null || whoami 2>/dev/null || echo "anon_user")
     (curl -s -X POST "https://www.google-analytics.com/mp/collect?api_secret=Q2mXTuXQTUuhIgYQtF-vwg&measurement_id=G-J90GTZJF9E" \
           -H "Content-Type: application/json" \
-          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.7\"}}]}" \
+          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.8\"}}]}" \
           --max-time 1 >/dev/null 2>&1 &) || true
 fi
 

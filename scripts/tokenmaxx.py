@@ -36,7 +36,7 @@ from datetime import datetime, timedelta, timezone
 DEFAULT_BUDGET = 5.00
 CREDIT_LIFESPAN_HOURS = 12
 
-CURRENT_VERSION = "1.0.5"
+CURRENT_VERSION = "1.0.8"
 GITHUB_REPO = os.environ.get("TOKENMAXX_REPO", "saadgh/tokenmaxxing")
 VERSION_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/VERSION"
 RAW_REPO_BASE = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main"
@@ -764,19 +764,31 @@ SKILL_ALIASES = {
     "gemini": "cloud/gemini-api",
     "gemini-api": "cloud/gemini-api",
     "gemini-live": "cloud/gemini-live-api",
+    "gemini-live-api": "cloud/gemini-live-api",
+    "gemini-agents": "cloud/gemini-agents-api",
     "firebase": "cloud/firebase-basics",
     "firebase-basics": "cloud/firebase-basics",
     "cloud-run": "cloud/cloud-run-basics",
     "cloudrun": "cloud/cloud-run-basics",
+    "cloud-sql": "cloud/cloud-sql-basics",
     "bigquery": "cloud/bigquery-basics",
+    "bigquery-ai": "cloud/bigquery-ai-ml",
     "genkit": "cloud/developing-genkit-js",
+    "genkit-js": "cloud/developing-genkit-js",
+    "genkit-python": "cloud/developing-genkit-python",
+    "genkit-dart": "cloud/developing-genkit-dart",
+    "flutter": "cloud/developing-genkit-dart",
+    "dart": "cloud/developing-genkit-dart",
+    "gcloud": "cloud/gcloud",
     "developer-knowledge": "developers/retrieving-developer-knowledge",
-    "finding-skills": "developers/finding-google-skills"
+    "finding-skills": "developers/finding-google-skills",
+    "google-signin": "identity/sign-in-with-google-web"
 }
 SKILL_TRACKS = {
-    "ai": ["cloud/gemini-api", "cloud/firebase-basics"],
-    "backend": ["cloud/firebase-basics", "cloud/cloud-run-basics"],
-    "cloud": ["cloud/cloud-run-basics", "developers/retrieving-developer-knowledge"],
+    "ai": ["cloud/gemini-api", "cloud/gemini-live-api", "cloud/firebase-basics"],
+    "backend": ["cloud/firebase-basics", "cloud/cloud-run-basics", "cloud/cloud-sql-basics"],
+    "cloud": ["cloud/cloud-run-basics", "cloud/gcloud", "developers/retrieving-developer-knowledge"],
+    "mobile": ["cloud/developing-genkit-dart", "cloud/firebase-basics"],
 }
 
 def install_single_skill(skill_path: str) -> bool:
@@ -801,6 +813,7 @@ def install_single_skill(skill_path: str) -> bool:
                     target_dir.mkdir(parents=True, exist_ok=True)
                     with open(target_file, "w", encoding="utf-8") as f:
                         f.write(content)
+                    record_telemetry_event("skill_installed", {"skill": name})
                     print(f"✅ Successfully installed official Google skill '{name}' into {target_dir}")
                     return True
         except Exception:
@@ -813,7 +826,7 @@ def install_single_skill(skill_path: str) -> bool:
 def install_google_skill(arg: str):
     """
     Pulls official skills from github.com/google/skills into ~/.gemini/config/skills/
-    Supports individual skill names, aliases, and curated tracks (ai, backend, cloud).
+    Supports individual skill names, aliases, and curated tracks (ai, backend, cloud, mobile).
     """
     clean = (arg or "").strip().lower()
     if clean in SKILL_TRACKS:
@@ -835,6 +848,7 @@ def install_google_skill(arg: str):
 def check_for_updates(force=False):
     """
     Checks GitHub for newer version and auto-updates local skill files.
+    Silent during background checks; prints status only when force=True (--update).
     """
     state = load_state()
     now = datetime.now(timezone.utc)
@@ -858,7 +872,8 @@ def check_for_updates(force=False):
             remote_ver = resp.read().decode("utf-8").strip()
 
         if remote_ver != CURRENT_VERSION or force:
-            print(f"📦 Updating TokenMaxxing (v{CURRENT_VERSION} -> v{remote_ver})...")
+            if force:
+                print(f"📦 Updating TokenMaxxing (v{CURRENT_VERSION} -> v{remote_ver})...")
             files_to_update = {
                 "SKILL.md": SKILLS_DIR / "SKILL.md",
                 "scripts/tokenmaxx.py": SKILLS_DIR / "scripts" / "tokenmaxx.py",
@@ -879,7 +894,8 @@ def check_for_updates(force=False):
                     pass
             state["installed_version"] = remote_ver
             save_state(state)
-            print(f"🎉 Successfully updated TokenMaxxing to v{remote_ver}!")
+            if force:
+                print(f"🎉 Successfully updated TokenMaxxing to v{remote_ver}!")
             return True
         else:
             if force:
@@ -993,10 +1009,10 @@ def run_tokenmaxx(args):
     # Output Rendering
     # -----------------------------------------------------------------------
 
-    # SCENARIO B / WRAP-UP: Credit is Expired OR User Requested Workshop Wrap-Up (--wrapup)
-    if is_expired or getattr(args, "wrapup", False):
+    # SCENARIO B / WRAP-UP: Explicit --wrapup OR Active GDP Credit Mode that has Expired
+    if getattr(args, "wrapup", False) or (is_gcp and is_expired):
         print("=" * 66)
-        if is_expired:
+        if is_expired and is_gcp:
             print(" 🎓 TOKENMAXXING — 12-HOUR WORKSHOP CREDIT COMPLETE & GRADUATION")
         else:
             print(" 🎉 TOKENMAXXING — GDG WORKSHOP IMPACT SUMMARY & NEXT STEPS")
@@ -1043,6 +1059,36 @@ def run_tokenmaxx(args):
             for alert in low_quota_alerts:
                 print(f"    • {alert}")
             print("    Tip: Switch to an alternate model (e.g. Gemini 3.8 Flash) to avoid throttling.")
+        print("=" * 66)
+        return
+
+    # SCENARIO D: User is on Personal Free Tier (Not connected to Agent Platform yet)
+    if not is_pro and not is_gcp:
+        if getattr(args, "pulse", False):
+            if low_quota_alerts:
+                print(f"⚠️ **TokenMaxx Quota Alert:** {', '.join(low_quota_alerts)} — switch to Gemini 3.8 Flash to avoid throttling.")
+            return
+        print("=" * 66)
+        print(" ⚡ TOKENMAXXING — ACTIVE PLAN: GOOGLE AI FREE TIER")
+        print("=" * 66)
+        print(" ℹ️  You are currently signed into your personal Free Tier account.")
+        if timer_info["has_timer"] and hours_left > 0:
+            print("-" * 66)
+            print(f" 🎟️  Unconnected Workshop Credit: ${remaining_budget:.2f} available ({timer_info['formatted']})")
+            if state.get("project_id"):
+                print(f" 🏗️  Prepared Workshop Project  : {state['project_id']}")
+                print(" 👉 To switch Antigravity to your $5.00 workshop credit, complete Step 4")
+                print("    (run `tokenmaxx --step4` or ask me \"Show Step 4 to connect my project\").")
+            else:
+                print(" 👉 Have a GDG workshop credit? Ask me: \"Help me set up my GDG credits\"")
+        if model_quotas:
+            print("-" * 66)
+            print(" 📊 LIVE MODEL QUOTA RADAR:")
+            for q in model_quotas[:6]:
+                rem = q.get("remainingFraction")
+                pct = "0%" if rem is None else f"{rem*100:.0f}%"
+                rst = q.get("reset_time") or "N/A"
+                print(f" • {q.get('label', 'Model'):<26}: {pct} remaining (resets: {rst})")
         print("=" * 66)
         return
 
@@ -1117,9 +1163,9 @@ def run_tokenmaxx(args):
     print("-" * 66)
     print(" 🧩 OFFICIAL GOOGLE AGENT SKILLS GATEWAY (github.com/google/skills):")
     print(" Supercharge your project with 1-click official skills:")
-    print(" • 🔥 AI & Backend : gemini-api | firebase-basics")
-    print(" • 📱 Mobile       : flutter | jetpack-compose-performance")
-    print(" • ☁️ Cloud & Web   : cloud-run | developer-knowledge")
+    print(" • 🔥 AI & Agents  : gemini-api | gemini-live-api | genkit-python")
+    print(" • ⚡ App & Mobile : firebase-basics | flutter | google-signin")
+    print(" • ☁️ Cloud & Data : cloud-run | bigquery | developer-knowledge")
     print(" (To install, say \"Install <name>\" or run: tokenmaxx --install-skill <name>)")
     print("-" * 66)
     print(f" {selected_pro_move}")
@@ -1141,19 +1187,20 @@ def detect_antigravity_environment() -> dict:
         "surface": "unknown",
         "needs_update": False
     }
-    try:
-        ps_out = subprocess.check_output(["ps", "aux"], text=True)
-        for line in ps_out.splitlines():
-            if "language_server" in line:
-                m_ver = re.search(r"--override_ide_version\s+([0-9\.]+)", line)
-                if m_ver:
-                    env["version_str"] = m_ver.group(1)
-                m_sub = re.search(r"--subclient_type\s+(\S+)", line)
-                if m_sub:
-                    env["surface"] = m_sub.group(1).lower()
-                break
-    except Exception:
-        pass
+    if sys.platform != "win32":
+        try:
+            ps_out = subprocess.check_output(["ps", "aux"], text=True, stderr=subprocess.DEVNULL)
+            for line in ps_out.splitlines():
+                if "language_server" in line:
+                    m_ver = re.search(r"--override_ide_version\s+([0-9\.]+)", line)
+                    if m_ver:
+                        env["version_str"] = m_ver.group(1)
+                    m_sub = re.search(r"--subclient_type\s+(\S+)", line)
+                    if m_sub:
+                        env["surface"] = m_sub.group(1).lower()
+                    break
+        except Exception:
+            pass
 
     # Fallback check on macOS Info.plist
     if not env["version_str"] and sys.platform == "darwin":
@@ -1162,7 +1209,7 @@ def detect_antigravity_environment() -> dict:
             try:
                 out = subprocess.check_output(
                     ["defaults", "read", "/Applications/Antigravity.app/Contents/Info.plist", "CFBundleShortVersionString"],
-                    text=True
+                    text=True, stderr=subprocess.DEVNULL
                 ).strip()
                 if out:
                     env["version_str"] = out
@@ -1188,51 +1235,73 @@ def run_step1(raw_claim_url: str = ""):
     env = detect_antigravity_environment()
 
     clean_input = (raw_claim_url or "").strip()
-    # Guard: Never treat the TokenMaxxing installer URL itself as an event credit claim URL!
+    # Guard: Never treat the TokenMaxxing installer URL itself or confirmation words as an event credit claim URL!
     if any(k in clean_input.lower() for k in ["tokenmaxxing", "install.sh", "raw.githubusercontent.com", "<", ">"]):
         clean_input = ""
+    if clean_input.lower() in {"claimed", "done", "yes", "ok", "next", "skip"}:
+        # If the agent accidentally passed "claimed" to --step1 instead of calling --step2, redirect seamlessly to Step 2!
+        run_step2()
+        return
 
     claim_url, suggested_event, direct_portal = normalize_claim_url(clean_input)
 
     state = load_state()
+    was_awaiting_url = (state.get("onboarding_step") == "step1_awaiting_url")
     state["claimed_at"] = datetime.now(timezone.utc).isoformat()
-    state["suggested_event"] = suggested_event or "gdg-workshop"
+    if suggested_event:
+        state["suggested_event"] = suggested_event
+    elif not state.get("suggested_event"):
+        state["suggested_event"] = "gdg-workshop"
     state["last_milestone_alerted"] = 0
-    save_state(state)
 
     if clean_input:
+        state["onboarding_step"] = "step1_url_opened"
+        save_state(state)
         open_browser_url(claim_url)
+    else:
+        state["onboarding_step"] = "step1_awaiting_url"
+        save_state(state)
 
-    print("⚡ **Welcome to TokenMaxxing — Your Workshop Credit & Token Co-Pilot!**")
-    print("This plugin does two things for you:")
-    print("1. **Guided Credit Setup:** Walks you through activating your **$5.00 Google Cloud workshop credit** one step at a time.")
-    print("2. **Live Budget & Token Tracker:** Shows your remaining **$5.00 balance, token usage, and 12-hour timer** every 5 prompts (or anytime you ask *\"How much credit or tokens do I have left?\"*).\n")
+    if not (clean_input and was_awaiting_url):
+        print("⚡ **Welcome to TokenMaxxing — Your Workshop Credit & Token Co-Pilot!**")
+        print("This plugin does two things for you:")
+        print("1. **Guided Credit Setup:** Walks you through activating your **$5.00 Google Cloud workshop credit** one step at a time.")
+        print("2. **Live Budget & Token Tracker:** Shows your remaining **$5.00 balance, token usage, and 12-hour timer** every 5 prompts (or anytime you ask *\"How much credit or tokens do I have left?\"*).\n")
 
-    if env["needs_update"]:
-        print(f"⚠️ **Important Version Check (Antigravity v{env['version_str']} detected):**")
-        print("Before we reach Step 4, please make sure you update Antigravity to **v2.26.0+** (**Antigravity → Check for Updates** or download from `https://antigravity.google`) so the **\"Use Business Account\"** sign-in option is available.\n")
+        if env["needs_update"]:
+            print(f"⚠️ **Important Version Check (Antigravity v{env['version_str']} detected):**")
+            print("Before we reach Step 4, please make sure you update Antigravity to **v2.26.0+** (**Antigravity → Check for Updates** or download from `https://antigravity.google`) so the **\"Use Business Account\"** sign-in option is available.\n")
+        print("---")
 
-    print("---")
     print("### 🎟️ Step 1 of 4: Claim Your $5.00 Workshop Credit")
     if clean_input:
         print(f"I just opened your credit link in your browser:\n👉 **{claim_url}**")
         if direct_portal and direct_portal != claim_url:
-            print(f"   *(Direct Portal Fallback: {direct_portal})*\n")
+            print(f"   *(Direct Portal Fallback if redirect fails: {direct_portal})*\n")
         else:
             print("")
         print("1. Make sure you are signed into your Google account in your browser.")
         print("2. Click **\"Claim Credit\"** (or **\"Apply\"**) on that page.")
-        print("   • 🔄 **First time on g.dev?** If Google asks you to create a Developer Profile first, complete that and re-open the link so the **\"Claim Credit\"** button appears.")
+        print("   • 🔄 **First time on g.dev?** If Google asks you to create a Developer Profile first, complete that and re-open the link above so the **\"Claim Credit\"** button appears.")
         print("   • 👤 **Same Account Rule:** Note which Google account avatar is in the top-right—you will need to use this exact same account for Steps 2, 3, and 4!")
-        print("3. Reply **\"claimed\"** (or **\"done\"**) here once you've claimed it (or if you already claimed it earlier), and I'll open Step 2 for you!")
+        print("3. Reply **\"claimed\"** (or **\"done\"**) here once you've claimed it in your browser, and I'll open Step 2 for you!")
+        print("\n🛑 [AGENT DIRECTIVE: Present ONLY the message above to the user and STOP. Do NOT run `--step2` yet! Wait for the user to click \"Claim Credit\" in their browser and reply \"claimed\" or \"done\", and ONLY THEN run `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step2`.]")
     else:
-        print("Please paste your **workshop credit link** (e.g. `https://g.dev/credits/...` or `https://me.developers.google.com/...`) so I can open it for you.")
+        print("Please paste your **workshop credit link** (e.g. `https://g.dev/credits/...` or `https://me.developers.google.com/...`) so I can open it in your browser for you.")
         print("*(If you already claimed your credit on the presenter's slides or are using an existing GCP credit project, simply reply **\"claimed\"** and I'll open Step 2!)*")
-    print("\n🛑 [AGENT DIRECTIVE: Present ONLY the message above to the user and STOP. Do NOT show Step 2, Step 3, or Step 4 yet! Wait for the user to reply first.]")
+        print("\n🛑 [AGENT DIRECTIVE: Present ONLY the message above to the user and STOP. Do NOT show Step 2, Step 3, or Step 4 yet!")
+        print("CRITICAL RULE FOR THE USER'S NEXT REPLY:")
+        print("• If the user replies with a URL or event slug (e.g. `https://g.dev/credits/...` or `https://me.developers.google.com/...`), you MUST run:")
+        print("    `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step1 \"<USER_CREDIT_URL>\"`")
+        print("  so it opens their credit claim page in the browser! Do NOT run `--step2` when they paste a credit URL!")
+        print("• ONLY run `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step2` after the user confirms they have already claimed the credit (e.g. replies \"claimed\" or \"done\").]")
 
 def run_step2():
     record_telemetry_event("setup_step2")
     state = load_state()
+    state["onboarding_step"] = "step2_project_create"
+    save_state(state)
+
     prefix = state.get("suggested_event") or "gdg-workshop"
     today_str = datetime.now().strftime("%d%b").lower()
     example_id = f"{prefix}-{today_str}"
@@ -1241,18 +1310,52 @@ def run_step2():
 
     print("### 🏗️ Step 2 of 4: Create Your Google Cloud Project")
     print("I just opened the **Google Cloud Project Creation** page in your browser (`https://console.cloud.google.com/projectcreate`).\n")
-    print(f"1. **Project Name:** Enter **`{example_id}`** *(Project IDs must be globally unique and lowercase)*.")
-    print("2. **Billing Account:** Click the **Billing account** dropdown and select the one starting with **`[YYYY-MM-DD] GDP Credit: ...`** *(this draws exclusively from your $5.00 voucher, never a personal card)*.")
-    print("   - *⏳ Tip: If the Billing account dropdown is missing or blank, wait 15–30 seconds for Google Cloud to sync your voucher and refresh the page.*")
-    print("   - *👤 Tip: Check the top-right avatar in Google Cloud Console to make sure you're on the same Google account that claimed the credit.*")
-    print("3. Click **Create**, then copy and **paste your Project ID here in chat** so I can open Step 3 for you!")
-    print("\n🛑 [AGENT DIRECTIVE: Present ONLY Step 2 above to the user and STOP. Do NOT show Step 3 or Step 4 yet! Wait for the user to reply with their Project ID.]")
+    print("*(💡 First time on Google Cloud? If a welcome pop-up asks you to select your Country & agree to the Terms of Service, click **Agree and Continue** first.)*\n")
+    print(f"1. **Project Name & ID:** Enter **`{example_id}`** (or keep the default name). Look directly underneath the Project Name box to see your lowercase **Project ID** (e.g. `{example_id}` or `local-citizen-...`).")
+    print("2. **Billing Account:**")
+    print("   • **If you see the `Billing account` dropdown:** Select the account starting with **`[YYYY-MM-DD] GDP Credit: ...`** or **`Google Developers Credits`** *(draws 100% from your $5.00 voucher, never a personal card)*.")
+    print("   • **⚠️ Don't see a `Billing account` dropdown at all?** Google Cloud hides that dropdown when your profile only has 0 or 1 billing account! Make sure you clicked **Claim / Apply** on your credit link in Step 1 using this **exact same Google account** (check your top-right avatar), wait 15 seconds, and refresh the page (or check `https://console.cloud.google.com/billing` to confirm your credit appears).")
+    print("3. Click **Create**, then copy and **paste your lowercase Project ID here in chat** so I can open Step 3 for you!")
+    print("\n🛑 [AGENT DIRECTIVE: Present ONLY Step 2 above to the user and STOP. Do NOT show Step 3 or Step 4 yet!")
+    print("WHEN THE USER REPLIES NEXT:")
+    print("• If the user replies with a valid lowercase Project ID (e.g. `gdg-workshop-27oct` or `local-citizen-512912-i5`), run:")
+    print("    `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step3 \"<PROJECT_ID>\"`")
+    print("• If the user instead pastes a credit claim URL (`https://g.dev/...`) because they hadn't claimed their credit yet, run `tokenmaxx.py --step1 \"<USER_CREDIT_URL>\"`.]")
 
 def run_step3(project_id: str):
-    record_telemetry_event("setup_step3")
     clean_id = (project_id or "").strip().lower()
     state = load_state()
+    prefix = state.get("suggested_event") or "gdg-workshop"
+    today_str = datetime.now().strftime("%d%b").lower()
+    example_id = f"{prefix}-{today_str}"
+
+    # Guard: If user pasted a credit URL here, redirect to Step 1 with that URL
+    if any(k in clean_id for k in ["g.dev/", "developers.google.com/benefits"]):
+        run_step1(project_id)
+        return
+
+    RESERVED_WORDS = {
+        "claimed", "done", "yes", "ok", "okay", "next", "skip", "created",
+        "step1", "step2", "step3", "step4", "none", "null", "true", "false",
+        "<your_project_id>", "<project_id>", "your-project-id", "project-id"
+    }
+    is_valid_gcp_id = (
+        bool(re.match(r"^[a-z][a-z0-9\-]{3,29}$", clean_id))
+        and clean_id not in RESERVED_WORDS
+        and not any(k in clean_id for k in ["http", "www.", ".com", ".dev", "/"])
+    )
+
+    if not is_valid_gcp_id:
+        print(f"⚠️ **`{project_id}` doesn't look like a valid Google Cloud Project ID.**\n")
+        print("- A Google Cloud **Project ID** is 6–30 lowercase letters, numbers, and hyphens with **no spaces** (for example: **`" + example_id + "`** or **`local-citizen-512912-i5`**).")
+        print("- You can find it directly underneath the **Project name** box on `https://console.cloud.google.com/projectcreate` (or in the project picker at the top-left of Google Cloud Console).\n")
+        print("👉 Please copy and paste your lowercase **Project ID** here so I can open the Vertex AI API activation page for your project!")
+        print("\n🛑 [AGENT DIRECTIVE: Present ONLY the message above to the user and STOP. Wait for the user to reply with a valid lowercase Project ID before running `--step3 \"<PROJECT_ID>\"` again.]")
+        return
+
+    record_telemetry_event("setup_step3")
     state["project_id"] = clean_id
+    state["onboarding_step"] = "step3_api_enable"
     save_state(state)
     copy_to_clipboard(clean_id)
 
@@ -1263,6 +1366,7 @@ def run_step3(project_id: str):
     print("I have saved your Project ID, copied it to your clipboard, and opened the **API Activation Page** in your browser:\n")
     print(f"👉 **{enable_url}**\n")
     print("1. In your browser window, click **Next** (if shown) and then click **Enable**.")
+    print("   *(💡 If Google Cloud prompts you to link a billing account here, select your **`GDP Credit` / `Google Developers Credits`** account).*")
     print("2. Wait ~5 seconds until it finishes enabling, then reply **\"done\"** here for our final step!")
     print("\n🛑 [AGENT DIRECTIVE: Present ONLY Step 3 above to the user and STOP. Do NOT show Step 4 yet! Wait for the user to confirm they clicked Enable.]")
 
@@ -1270,8 +1374,11 @@ def run_step4():
     record_telemetry_event("setup_step4")
     state = load_state()
     project_id = state.get("project_id") or "<your-project-id>"
+    state["onboarding_step"] = "completed"
+    save_state(state)
     if project_id != "<your-project-id>":
         copy_to_clipboard(project_id)
+        record_telemetry_event("setup_completed", {"project_id": project_id})
 
     print("### 🔄 Step 4 of 4: Connect Antigravity to Your Workshop Project")
     print(f"📋 **Your Project ID (`{project_id}`) is copied to your clipboard!**")

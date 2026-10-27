@@ -94,23 +94,29 @@ Run:
 python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step1
 ```
 *(Note: Only pass a URL argument to `--step1` if the user provided a separate event credit claim link like `https://g.dev/credits/...` — NEVER pass the installer link `https://g.dev/events/tokenmaxxing`!)*
-- This automatically checks if the user's Antigravity version is `>= 2.26.0` (warning them to update if older), locks the 12-hour timer, opens their credit link in the browser (with direct `me.developers.google.com` fallback, first-time developer profile tips, and account consistency guidance), and outputs the **Welcome Education + Step 1 prompt**.
-- **🛑 STOP & WAIT:** Present ONLY the Step 1 output and wait for the user to paste their link or reply `"claimed"` / `"done"`.
+- This automatically checks if the user's Antigravity version is `>= 2.26.0` (warning them to update if older), locks the 12-hour timer, and outputs the **Welcome Education + Step 1 prompt**.
+- **🛑 STOP & WAIT:**
+  - If `--step1` was run **without** a credit URL and the user replies by pasting a credit link (e.g. `https://g.dev/credits/...` or `https://me.developers.google.com/...`), you **MUST** run:
+    ```bash
+    python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step1 "<USER_CREDIT_URL>"
+    ```
+    to open their credit page in the browser and wait for them to click **"Claim Credit"** and reply `"claimed"`! Do **NOT** jump to `--step2` when they paste a credit URL!
+  - Only move to `--step2` once the user explicitly confirms they have claimed the credit (e.g. replies `"claimed"` or `"done"`).
 
 ### Turn 2 — Step 2 (Create Google Cloud Project & Select GDP Credit Billing)
 Once the user confirms they claimed their credit, run:
 ```bash
 python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step2
 ```
-- This automatically opens `https://console.cloud.google.com/projectcreate` in their browser and gives them the suggested lowercase Project ID and tip to select `[YYYY-MM-DD] GDP Credit: ...` in the Billing Account dropdown.
-- **🛑 STOP & WAIT:** Present ONLY Step 2 and wait for the user to reply with their created **Project ID**.
+- This automatically opens `https://console.cloud.google.com/projectcreate` in their browser, gives them the suggested lowercase Project ID, and explains how to select `[YYYY-MM-DD] GDP Credit: ...` in the Billing Account dropdown (and why the Billing Account dropdown is hidden if they haven't claimed their credit on that Google account yet).
+- **🛑 STOP & WAIT:** Present ONLY Step 2 and wait for the user to reply with their created lowercase **Project ID**.
 
 ### Turn 3 — Step 3 (Enable Vertex AI API for Their Real Project ID)
-Once the user replies with their `<PROJECT_ID>`, run:
+Once the user replies with their lowercase `<PROJECT_ID>`, run:
 ```bash
 python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step3 "<PROJECT_ID>"
 ```
-- This saves `<PROJECT_ID>` to `state.json`, copies it to their clipboard, and automatically opens `https://console.cloud.google.com/apis/enableflow?apiid=aiplatform.googleapis.com&project=<PROJECT_ID>` in their browser.
+- This validates `<PROJECT_ID>`, saves it to `state.json`, copies it to their clipboard, and automatically opens `https://console.cloud.google.com/apis/enableflow?apiid=aiplatform.googleapis.com&project=<PROJECT_ID>` in their browser.
 - **🛑 STOP & WAIT:** Present ONLY Step 3 (with the real pre-filled link) and wait for the user to click **Enable** and reply `"done"`.
 
 ### Turn 4 — Step 4 (Dual-UI Account Switch + Final Balance Tracker Hand-Off)
@@ -130,9 +136,9 @@ python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step4
 
 Equip your project with official Google Agent Skills from [`github.com/google/skills`](https://github.com/google/skills) in 1 click (0 installation tokens, zero bloat):
 - **Curated Workshop Tracks:**
-  - 🔥 **AI & Backend Track (`--install-skill ai`):** `gemini-api` + `firebase-basics`
-  - 📱 **Mobile Track (`--install-skill mobile`):** `flutter` + `jetpack-compose-performance`
-  - ☁️ **Cloud Track (`--install-skill cloud`):** `cloud-run` + `retrieving-developer-knowledge`
+  - 🔥 **AI & Agents Track (`--install-skill ai`):** `gemini-api` + `gemini-live-api` + `firebase-basics`
+  - 📱 **Mobile Track (`--install-skill mobile`):** `developing-genkit-dart` (`flutter`) + `firebase-basics`
+  - ☁️ **Cloud Track (`--install-skill cloud`):** `cloud-run-basics` + `gcloud` + `retrieving-developer-knowledge`
 - **1-Click Installation:**
   - Run: `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --install-skill <name_or_track>`
   - Or simply tell Antigravity in chat: *"Install gemini-api skill"* or *"Install AI skills track"*.
