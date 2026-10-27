@@ -1034,7 +1034,13 @@ def detect_antigravity_environment() -> dict:
 def run_step1(raw_claim_url: str = ""):
     record_telemetry_event("setup_step1")
     env = detect_antigravity_environment()
-    claim_url, suggested_event = normalize_claim_url(raw_claim_url)
+
+    clean_input = (raw_claim_url or "").strip()
+    # Guard: Never treat the TokenMaxxing installer URL itself as an event credit claim URL!
+    if any(k in clean_input.lower() for k in ["tokenmaxxing", "install.sh", "raw.githubusercontent.com", "<", ">"]):
+        clean_input = ""
+
+    claim_url, suggested_event = normalize_claim_url(clean_input)
 
     state = load_state()
     state["claimed_at"] = datetime.now(timezone.utc).isoformat()
@@ -1042,7 +1048,8 @@ def run_step1(raw_claim_url: str = ""):
     state["last_milestone_alerted"] = 0
     save_state(state)
 
-    open_browser_url(claim_url)
+    if clean_input:
+        open_browser_url(claim_url)
 
     print("⚡ **Welcome to TokenMaxxing — Your Workshop Credit & Token Co-Pilot!**")
     print("This plugin does two things for you:")
@@ -1055,13 +1062,13 @@ def run_step1(raw_claim_url: str = ""):
 
     print("---")
     print("### 🎟️ Step 1 of 4: Claim Your $5.00 Workshop Credit")
-    if raw_claim_url:
+    if clean_input:
         print(f"I just opened your credit link in your browser:\n👉 **{claim_url}**\n")
         print("1. Make sure you are signed into your Google account in your browser.")
         print("2. Click **\"Claim Credit\"** (or **\"Apply\"**) on that page.")
         print("3. Reply **\"claimed\"** (or **\"done\"**) here once you've claimed it, and I'll open Step 2 for you!")
     else:
-        print("Please paste your **workshop credit link** (e.g. `https://g.dev/credits/...`), or if you already clicked **\"Claim Credit\"** in your browser, reply **\"claimed\"** and I'll take you to Step 2!")
+        print("Please paste your **workshop credit link** (e.g. `https://g.dev/credits/...` or `https://me.developers.google.com/...`) so I can open it for you—or if you already clicked **\"Claim Credit\"** in your browser, reply **\"claimed\"** and I'll open Step 2!")
     print("\n🛑 [AGENT DIRECTIVE: Present ONLY the message above to the user and STOP. Do NOT show Step 2, Step 3, or Step 4 yet! Wait for the user to reply first.]")
 
 def run_step2():

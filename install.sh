@@ -14,7 +14,9 @@
 #
 # 3. STRICT 1-STEP-AT-A-TIME ONBOARDING RULE (NEVER DUMP ALL STEPS AT ONCE!):
 #    - Immediately after installing, run:
-#        python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step1 "<USER_CREDIT_URL_IF_PROVIDED>"
+#        python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step1
+#      (Note: Only pass an argument to --step1 if the user also provided a separate
+#       event credit link like https://g.dev/credits/... — NEVER pass https://g.dev/events/tokenmaxxing!)
 #    - Present ONLY the Welcome Intro + Step 1 output to the user and STOP!
 #    - DO NOT show Step 2, Step 3, or Step 4 yet! Wait for the user to reply first.
 #    - Turn 2 (after user claims credit): run `tokenmaxx.py --step2`, show ONLY Step 2, and STOP to wait for their Project ID.
