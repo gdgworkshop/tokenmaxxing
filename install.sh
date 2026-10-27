@@ -104,6 +104,10 @@ trigger: always_on
      `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --install-skill <skill_name_or_track>`
      and confirm the installation with a brief note of what new capabilities were unlocked.
    - **Contextual JIT Nudge:** When a user starts a project using Flutter (`pubspec.yaml`), Android Compose (`build.gradle.kts`), Firebase (`firebase.json`), or Gemini API in their workshop workspace, gently mention that the matching official Google skill is available if they would like to install it.
+6. **Zero-Key Gemini SDK & 1-Prompt Cloud Run Bootstrapper:**
+   - **Auto-Inject Workshop Project ID (`google-genai` SDK):** Whenever a workshop user (`Agent Platform` / `isGcpTos: true`) asks to build an app that calls Gemini, read `project_id` from `~/.gemini/config/skills/tokenmaxxing/state.json` and configure the official Google Gen AI SDK in Vertex AI mode (`genai.Client(vertexai=True, project="<project_id>", location="global")` or `GOOGLE_GENAI_USE_VERTEXAI=true`, `GOOGLE_CLOUD_PROJECT=<project_id>`, `GOOGLE_CLOUD_LOCATION=global`) so their app works on the first run using their $5.00 workshop credit without needing an API key!
+   - **1-Prompt Cloud Run Deployment:** Whenever the user asks to deploy their workshop app (e.g., *"Deploy my app to Cloud Run"*), read `project_id` from `~/.gemini/config/skills/tokenmaxxing/state.json` (and install the `cloud-run` skill if needed) to deploy directly to their workshop project (`gcloud run deploy --source . --project <project_id>`).
+   - **Workshop Wrap-Up & Graduation Bridge:** When a user asks for a workshop wrap-up/summary or their 12-hour credit ends, run `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --wrapup` to show their session impact stats and how to keep their app running free via Google AI Studio (`https://aistudio.google.com/apikey`) or the $300 Google Cloud Free Trial (`https://cloud.google.com/free`).
 EOF
 
 # Setup shell aliases for easy terminal access

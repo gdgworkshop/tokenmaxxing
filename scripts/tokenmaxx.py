@@ -36,7 +36,7 @@ from datetime import datetime, timedelta, timezone
 DEFAULT_BUDGET = 5.00
 CREDIT_LIFESPAN_HOURS = 12
 
-CURRENT_VERSION = "1.0.4"
+CURRENT_VERSION = "1.0.5"
 GITHUB_REPO = os.environ.get("TOKENMAXX_REPO", "saadgh/tokenmaxxing")
 VERSION_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/VERSION"
 RAW_REPO_BASE = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main"
@@ -872,16 +872,47 @@ def run_tokenmaxx(args):
         "recent_model_used": usage["recent_model_used"],
         "advisor_alert": advisor_alert,
         "low_quota_alerts": low_quota_alerts,
-        "vertex_conversations_count": usage["vertex_conversations_count"]
+        "vertex_conversations_count": usage["vertex_conversations_count"],
+        "project_id": state.get("project_id")
     }
 
     if args.json:
         print(json.dumps(payload, indent=2))
         return
 
+    project_id = state.get("project_id") or "your-workshop-project"
+    total_tokens = (
+        usage["flash"]["input"] + usage["flash"]["cached"] + usage["flash"]["output"] +
+        usage["argon"]["input"] + usage["argon"]["cached"] + usage["argon"]["output"]
+    )
+
     # -----------------------------------------------------------------------
     # Output Rendering
     # -----------------------------------------------------------------------
+
+    # SCENARIO B / WRAP-UP: Credit is Expired OR User Requested Workshop Wrap-Up (--wrapup)
+    if is_expired or getattr(args, "wrapup", False):
+        print("=" * 66)
+        if is_expired:
+            print(" 🎓 TOKENMAXXING — 12-HOUR WORKSHOP CREDIT COMPLETE & GRADUATION")
+        else:
+            print(" 🎉 TOKENMAXXING — GDG WORKSHOP IMPACT SUMMARY & NEXT STEPS")
+        print("=" * 66)
+        print(" 🏆 YOUR GEMINI & GOOGLE CLOUD WORKSHOP STATS:")
+        print(f" ├─ Total Tokens Powered by Gemini : {total_tokens:,} tokens")
+        print(f" ├─ Gross Cloud Compute Value      : ${usage['gross_usage']:.2f}")
+        print(f" ├─ Gemini Context Cache Savings   : -${usage['caching_discount']:.2f} (Saved automatically!)")
+        print(f" └─ Net Workshop Voucher Utilized  : ${net_spent:.2f} / ${initial_budget:.2f}")
+        print("-" * 66)
+        print(" 🌱 KEEP BUILDING WITH GEMINI & GOOGLE CLOUD (FREE GRADUATION BRIDGE):")
+        print(" 1. Keep Your Gemini App Running Free:")
+        print("    • Grab a free Gemini API key at: https://aistudio.google.com/apikey")
+        print("    • Or claim $300 in Google Cloud Free Trial credits: https://cloud.google.com/free")
+        print(" 2. Switch Antigravity Back to Your Personal Account (Once 12h Credit Ends):")
+        print("    • Sign Out (Top-right 👤 Profile in Editor OR Bottom-left ⚙️ Settings -> Account).")
+        print("    • Sign back in with your personal Google Account (Google AI Pro or Free Tier).")
+        print("=" * 66)
+        return
 
     # SCENARIO A: User is on Google AI Pro / Ultra
     if is_pro and not is_gcp:
@@ -895,16 +926,12 @@ def run_tokenmaxx(args):
         print(" ℹ️  You are currently operating on your personal Google AI Pro plan.")
         print("    Tokens and dollar consumption are unlimited under your subscription.")
 
-        if is_expired:
-            print("-" * 66)
-            print(" ℹ️  GDP Workshop Credit Notice:")
-            print(f"    Your temporary $5.00 GDP Credit has officially EXPIRED.")
-            print(f"    Reconciliation: ${net_spent:.2f} utilized | ${remaining_budget:.2f} expired unspent.")
-            print("    Your Pro subscription ensures you experience zero IDE lockouts.")
-        elif timer_info["has_timer"] and hours_left > 0:
+        if timer_info["has_timer"] and hours_left > 0:
             print("-" * 66)
             print(f" ⏳ Background GDP Credit Clock: {timer_info['formatted']}")
             print(f"    Available Voucher Balance  : ${remaining_budget:.2f} remaining")
+            if state.get("project_id"):
+                print(f"    Active Workshop Project    : {state['project_id']}")
             print("    (Switch to 'Agent Platform' mode if you want to consume workshop credits)")
 
         if low_quota_alerts:
@@ -916,54 +943,7 @@ def run_tokenmaxx(args):
         print("=" * 66)
         return
 
-    # SCENARIO B: Credit is Expired (Post-Mortem & Downgrade Wizard)
-    if is_expired:
-        print("=" * 66)
-        print(" 🚨 TOKENMAXXING — $5.00 GDP WORKSHOP CREDIT EXPIRED")
-        print("=" * 66)
-        print(" The 12-hour validity window for your temporary GDP billing account has closed.")
-        print("-" * 66)
-        print(f" Starting Voucher Grant : ${initial_budget:.2f}")
-        print(f" Gross Model Usage      : ${usage['gross_usage']:.2f} (Uncached list price)")
-        print(f" Context Cache Savings  : -${usage['caching_discount']:.2f} (49.9% discount)")
-        print(f" Total Net Utilized     : ${net_spent:.2f}")
-        print(f" Expired Unspent Credit : ${remaining_budget:.2f} (🔴 Destroyed by Google Cloud)")
-        print("-" * 66)
-        print(" 🛡️ SWITCH BACK TO YOUR PERSONAL ACCOUNT:")
-        print(" 1. Sign Out of Antigravity (Top-right 👤 Profile icon in Editor OR Bottom-left ⚙️ Settings -> Account).")
-        print(" 2. Sign back in with your personal Google Account (Google AI Pro or Free Tier).")
-        print(" 3. This immediately restores normal chatting after your 12-hour workshop voucher ends.")
-        print("=" * 66)
-        return
-
     # SCENARIO C: Active GDP Credit Mode (Agent Platform)
-    print("=" * 66)
-    print(" ⚡ TOKENMAXXING — GDP WORKSHOP TOKEN & CREDIT CO-PILOT")
-    print("=" * 66)
-    print(f" 🎟️  Active Account   : Agent Platform (GDP Workshop Credit)")
-    print(f" ⏳ Credit Lifespan  : {timer_info['formatted']}")
-    print(f" 🎯 Current Model    : {usage['recent_model_used']}")
-    print("-" * 66)
-    print(" 🧾 PRODUCTION INVOICING RECONCILIATION (MATCHES CLOUD CONSOLE):")
-    print(f" ├─ Gross Usage Cost    : ${usage['gross_usage']:.2f} (Uncached list rates)")
-    print(f" ├─ Context Cache Credit: -${usage['caching_discount']:.2f} (Prompt caching savings)")
-    print(f" ├─ Net Voucher Deducted: -${net_spent:.2f} (Across {usage['vertex_conversations_count']} GDP chats)")
-    print(f" └─ Remaining Credit    : ${remaining_budget:.2f} ({pct_remaining:.1f}% remaining)")
-    print("-" * 66)
-
-    # Model Usage Breakdown
-    print(" 📊 TOKEN CONSUMPTION BY MODEL TIER:")
-    print(f" • Gemini 3.8 Flash : {usage['flash']['input'] + usage['flash']['cached']:,} tokens (${usage['flash']['net_cost']:.2f})")
-    print(f" • Gemini 4 Argon   : {usage['argon']['input'] + usage['argon']['cached']:,} tokens (${usage['argon']['net_cost']:.2f})")
-    print("-" * 66)
-
-    # Advisor Alert
-    if advisor_alert:
-        print(f" {advisor_alert['title']}:")
-        print(f" {advisor_alert['message']}")
-        print("-" * 66)
-
-    # Purchasing Power Translator
     turns_flash = int(remaining_budget / 0.005)
     turns_argon = int(remaining_budget / 0.06)
     pct_used = max(0.0, 100.0 - pct_remaining)
@@ -985,6 +965,18 @@ def run_tokenmaxx(args):
             print(f"   {advisor_alert['title']}: {advisor_alert['message']}")
         return
 
+    # Rotating Gemini & Antigravity Pro-Moves
+    pro_moves = [
+        f"💡 **Zero-Key Gemini SDK:** Building an AI app today? Ask me to connect the `google-genai` SDK directly to your workshop project (`{project_id}`)—no API key needed!",
+        "💡 **Gemini Multimodal Superpower:** Drag-and-drop any UI screenshot or error image into chat—Gemini can see it and write the code immediately!",
+        "💡 **Context Caching Magic:** Notice `Context Cache Credit` above? Gemini automatically caches your codebase so follow-up prompts cost up to **75% less**!",
+        f"💡 **1-Prompt Cloud Run Deploy:** Ready to share your app? Ask *\"Deploy my app to Cloud Run\"* to get a live `https://...run.app` URL funded by your $5.00 credit!"
+    ]
+    tip_idx = state.get("pro_move_idx", 0) % len(pro_moves)
+    selected_pro_move = pro_moves[tip_idx]
+    state["pro_move_idx"] = tip_idx + 1
+    save_state(state)
+
     print("=" * 66)
     if crossed_milestone:
         print(f" 🔔 TOKENMAXXING — {crossed_milestone}% WORKSHOP CREDIT MILESTONE REACHED")
@@ -992,6 +984,8 @@ def run_tokenmaxx(args):
         print(" ⚡ TOKENMAXXING — GDP WORKSHOP TOKEN & CREDIT CO-PILOT")
     print("=" * 66)
     print(f" 🎟️  Active Account   : Agent Platform (GDP Workshop Credit)")
+    if state.get("project_id"):
+        print(f" 🏗️  Workshop Project : {state['project_id']} (Vertex AI Ready)")
     print(f" ⏳ Credit Lifespan  : {timer_info['formatted']}")
     print(f" 🎯 Current Model    : {usage['recent_model_used']}")
     print("-" * 66)
@@ -1025,8 +1019,8 @@ def run_tokenmaxx(args):
     print(" • ☁️ Cloud & Web   : cloud-run | developer-knowledge")
     print(" (To install, say \"Install <name>\" or run: tokenmaxx --install-skill <name>)")
     print("-" * 66)
-    print(" 💬 Tip: Ask \"How much credit or tokens do I have left?\" anytime!")
-    print("    (TokenMaxx also pulses every 5 prompts & alerts at 50%, 70%, 90%)")
+    print(f" {selected_pro_move}")
+    print(" 💬 Ask \"How much credit do I have left?\" anytime (pulses every 5 prompts)")
     print("=" * 66)
 
 # ---------------------------------------------------------------------------
@@ -1342,6 +1336,7 @@ def main():
     parser = argparse.ArgumentParser(description="TokenMaxxing for Antigravity - Workshop Token & Credit Co-Pilot")
     parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
     parser.add_argument("--pulse", "--status-bar", action="store_true", dest="pulse", help="Output compact 2-line TokenMaxx Status Bar (auto-escalates at 50%/70%/90% checkpoints)")
+    parser.add_argument("--wrapup", "--summary", action="store_true", dest="wrapup", help="Display workshop impact summary and free Gemini/Google Cloud graduation bridge")
     parser.add_argument("--claimed-at", type=str, help="Calibrate credit claim time (ISO or HH:MM)")
     parser.add_argument("--install-skill", type=str, help="1-click install official Google skill from github.com/google/skills")
     parser.add_argument("--setup", action="store_true", help="Launch interactive GDG credit setup wizard")

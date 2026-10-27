@@ -139,6 +139,17 @@ Equip your project with official Google Agent Skills from [`github.com/google/sk
 
 ---
 
+## 🔑 Zero-Key Gemini SDK & 1-Prompt Cloud Run Bootstrapper
+
+- **Auto-Inject Workshop `project_id` (`google-genai` SDK):**
+  Because `tokenmaxx.py` saves the attendee's Google Cloud `project_id` in `~/.gemini/config/skills/tokenmaxxing/state.json`, whenever the user asks to build a Gemini-powered app, automatically pre-configure the official Google Gen AI SDK (`google-genai`) in Vertex AI mode using their saved `project_id` (`genai.Client(vertexai=True, project="<project_id>", location="global")`). Their app works on the very first run funded by their \$5.00 voucher—with zero API keys to create or leak!
+- **1-Prompt Cloud Run Deployment:**
+  When the user asks *"Deploy my app to Cloud Run"*, automatically use their saved `project_id` from `state.json` (and the `cloud-run` skill) so they leave the workshop with a live `https://...run.app` URL.
+- **Hour 12 Graduation Bridge (`--wrapup`):**
+  When the 12-hour credit finishes (or when the user runs `--wrapup`), displays their total Gemini tokens & Context Cache savings and guides them to keep their app running free with **Google AI Studio (`https://aistudio.google.com/apikey`)** or the **\$300 Google Cloud Free Trial (`https://cloud.google.com/free`)**.
+
+---
+
 ## 🛠️ CLI Reference
 
 ```bash
@@ -147,6 +158,9 @@ python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py
 
 # Display compact 2-line TokenMaxx Status Bar (for Every-5-Prompts Pulse; auto-escalates at 50%/70%/90%)
 python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --pulse
+
+# Display Workshop Impact Summary & Free Gemini/GCP Graduation Bridge
+python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --wrapup
 
 # Turn-by-turn onboarding step helpers (auto-opens browser URLs)
 python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step1 "<claim_url>"
