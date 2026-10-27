@@ -652,19 +652,23 @@ def evaluate_model_advisor(current_model: str, hours_left: float, remaining_budg
 # Respects DO_NOT_TRACK=1, completely non-blocking, zero personal data
 # ---------------------------------------------------------------------------
 
-GA4_MEASUREMENT_ID = os.environ.get("TOKENMAXX_GA4_ID", "G-TOKENMAXX1")
-GA4_API_SECRET = os.environ.get("TOKENMAXX_GA4_SECRET", "ANON_PING_SECRET")
+GA4_MEASUREMENT_ID = os.environ.get("TOKENMAXX_GA4_ID", "G-J90GTZJF9E")
+GA4_API_SECRET = os.environ.get("TOKENMAXX_GA4_SECRET", "Q2mXTuXQTUuhIgYQtF-vwg")
 
 def record_telemetry_event(event_name: str, params: dict = None):
     if os.environ.get("DO_NOT_TRACK") == "1":
         return
     try:
         import hashlib
-        client_id = hashlib.sha256((os.getlogin() + sys.platform).encode()).hexdigest()[:16]
+        try:
+            uname = os.getlogin()
+        except Exception:
+            uname = os.environ.get("USER", os.environ.get("USERNAME", "anon"))
+        client_id = hashlib.sha256((uname + sys.platform).encode()).hexdigest()[:16]
         url = f"https://www.google-analytics.com/mp/collect?api_secret={GA4_API_SECRET}&measurement_id={GA4_MEASUREMENT_ID}"
         event_params = {
             "platform": sys.platform,
-            "version": "1.0.0"
+            "version": "1.0.7"
         }
         if params:
             event_params.update(params)

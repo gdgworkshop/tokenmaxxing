@@ -134,9 +134,10 @@ setup_shell_rc "${HOME}/.bashrc"
 
 # Anonymous Telemetry Ping (F21) - Non-blocking, respects DO_NOT_TRACK
 if [ "${DO_NOT_TRACK}" != "1" ]; then
-    (curl -s -X POST "https://www.google-analytics.com/mp/collect?api_secret=ANON_PING_SECRET&measurement_id=G-TOKENMAXX1" \
+    CLIENT_ID=$(python3 -c "import hashlib, os, sys; uname = os.environ.get('USER', os.environ.get('USERNAME', 'anon')); print(hashlib.sha256((uname + sys.platform).encode()).hexdigest()[:16])" 2>/dev/null || whoami 2>/dev/null || echo "anon_user")
+    (curl -s -X POST "https://www.google-analytics.com/mp/collect?api_secret=Q2mXTuXQTUuhIgYQtF-vwg&measurement_id=G-J90GTZJF9E" \
           -H "Content-Type: application/json" \
-          -d "{\"client_id\":\"$(whoami | shasum | cut -c1-16)\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\"}}]}" \
+          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.7\"}}]}" \
           --max-time 1 >/dev/null 2>&1 &) || true
 fi
 
