@@ -94,7 +94,7 @@ Run:
 python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step1
 ```
 *(Note: Only pass a URL argument to `--step1` if the user provided a separate event credit claim link like `https://g.dev/credits/...` — NEVER pass the installer link `https://g.dev/events/tokenmaxxing`!)*
-- This automatically checks if the user's Antigravity version is `>= 2.26.0` (warning them to update if older), locks the 12-hour timer, opens their credit link in the browser, and outputs the **Welcome Education + Step 1 prompt**.
+- This automatically checks if the user's Antigravity version is `>= 2.26.0` (warning them to update if older), locks the 12-hour timer, opens their credit link in the browser (with direct `me.developers.google.com` fallback, first-time developer profile tips, and account consistency guidance), and outputs the **Welcome Education + Step 1 prompt**.
 - **🛑 STOP & WAIT:** Present ONLY the Step 1 output and wait for the user to paste their link or reply `"claimed"` / `"done"`.
 
 ### Turn 2 — Step 2 (Create Google Cloud Project & Select GDP Credit Billing)

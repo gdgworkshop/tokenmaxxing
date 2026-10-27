@@ -36,7 +36,7 @@ from datetime import datetime, timedelta, timezone
 DEFAULT_BUDGET = 5.00
 CREDIT_LIFESPAN_HOURS = 12
 
-CURRENT_VERSION = "1.0.2"
+CURRENT_VERSION = "1.0.3"
 GITHUB_REPO = os.environ.get("TOKENMAXX_REPO", "saadgh/tokenmaxxing")
 VERSION_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/VERSION"
 RAW_REPO_BASE = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main"
@@ -607,11 +607,11 @@ def copy_to_clipboard(text: str) -> bool:
 def normalize_claim_url(user_input: str) -> tuple:
     """
     Normalizes claim URLs, shortlinks, or raw event slugs into a valid browser URL.
-    Returns (normalized_url, suggested_event_name).
+    Returns (normalized_url, suggested_event_name, direct_portal).
     """
     raw = (user_input or "").strip()
     if not raw:
-        return "https://me.developers.google.com/benefits", ""
+        return "https://me.developers.google.com/benefits", "", ""
 
     # Prepend https:// if protocol is missing
     if not raw.startswith("http://") and not raw.startswith("https://"):
@@ -621,13 +621,15 @@ def normalize_claim_url(user_input: str) -> tuple:
             # Bare event slug like 'gdg-jakarta-road-to-devfest-cloud-run'
             raw = f"https://me.developers.google.com/benefits/claim/{raw}"
 
-    # Extract event slug for personalized project naming
+    # Extract event slug for personalized project naming & direct portal fallback
     suggested_event = ""
+    direct_portal = ""
     try:
-        parts = [p for p in raw.split("?")[0].split("#")[0].split("/") if p]
+        parts = [p for p in raw.split("?")[0].split("#")[0].rstrip("/").split("/") if p]
         if parts:
             last = parts[-1].lower()
             if last not in ["benefits", "claim", "credits"]:
+                direct_portal = f"https://me.developers.google.com/benefits/claim/{last}"
                 tokens = [t for t in re.split(r"[-_]", last) if t]
                 if tokens:
                     if len(tokens) >= 2 and tokens[0] == "gdg":
@@ -637,7 +639,7 @@ def normalize_claim_url(user_input: str) -> tuple:
     except Exception:
         pass
 
-    return raw, suggested_event
+    return raw, suggested_event, direct_portal
 
 def open_browser_url(url: str):
     """Cross-platform browser deep-link opener"""
@@ -1040,7 +1042,7 @@ def run_step1(raw_claim_url: str = ""):
     if any(k in clean_input.lower() for k in ["tokenmaxxing", "install.sh", "raw.githubusercontent.com", "<", ">"]):
         clean_input = ""
 
-    claim_url, suggested_event = normalize_claim_url(clean_input)
+    claim_url, suggested_event, direct_portal = normalize_claim_url(clean_input)
 
     state = load_state()
     state["claimed_at"] = datetime.now(timezone.utc).isoformat()
@@ -1063,12 +1065,19 @@ def run_step1(raw_claim_url: str = ""):
     print("---")
     print("### 🎟️ Step 1 of 4: Claim Your $5.00 Workshop Credit")
     if clean_input:
-        print(f"I just opened your credit link in your browser:\n👉 **{claim_url}**\n")
+        print(f"I just opened your credit link in your browser:\n👉 **{claim_url}**")
+        if direct_portal and direct_portal != claim_url:
+            print(f"   *(Direct Portal Fallback: {direct_portal})*\n")
+        else:
+            print("")
         print("1. Make sure you are signed into your Google account in your browser.")
         print("2. Click **\"Claim Credit\"** (or **\"Apply\"**) on that page.")
-        print("3. Reply **\"claimed\"** (or **\"done\"**) here once you've claimed it, and I'll open Step 2 for you!")
+        print("   • 🔄 **First time on g.dev?** If Google asks you to create a Developer Profile first, complete that and re-open the link so the **\"Claim Credit\"** button appears.")
+        print("   • 👤 **Same Account Rule:** Note which Google account avatar is in the top-right—you will need to use this exact same account for Steps 2, 3, and 4!")
+        print("3. Reply **\"claimed\"** (or **\"done\"**) here once you've claimed it (or if you already claimed it earlier), and I'll open Step 2 for you!")
     else:
-        print("Please paste your **workshop credit link** (e.g. `https://g.dev/credits/...` or `https://me.developers.google.com/...`) so I can open it for you—or if you already clicked **\"Claim Credit\"** in your browser, reply **\"claimed\"** and I'll open Step 2!")
+        print("Please paste your **workshop credit link** (e.g. `https://g.dev/credits/...` or `https://me.developers.google.com/...`) so I can open it for you.")
+        print("*(If you already claimed your credit on the presenter's slides or are using an existing GCP credit project, simply reply **\"claimed\"** and I'll open Step 2!)*")
     print("\n🛑 [AGENT DIRECTIVE: Present ONLY the message above to the user and STOP. Do NOT show Step 2, Step 3, or Step 4 yet! Wait for the user to reply first.]")
 
 def run_step2():
@@ -1160,12 +1169,17 @@ def run_interactive_setup():
     print(" 🎟️  STEP 1: Claim Your $5.00 Event Voucher")
     print("    Paste your claim link (e.g. https://g.dev/credits/... or me.developers.google.com/...)")
     try:
-        raw_claim = input("    👉 Claim URL (or press Enter to open Builders Hub): ").strip()
+        raw_claim = input("    👉 Claim URL (or press Enter if already claimed): ").strip()
     except (EOFError, KeyboardInterrupt):
         raw_claim = ""
-    claim_url, suggested_event = normalize_claim_url(raw_claim)
-    print(f"    Opening claim page in browser: {claim_url}")
-    open_browser_url(claim_url)
+    claim_url, suggested_event, direct_portal = normalize_claim_url(raw_claim)
+    if raw_claim:
+        print(f"    Opening claim page in browser: {claim_url}")
+        if direct_portal and direct_portal != claim_url:
+            print(f"    (Direct Portal Fallback: {direct_portal})")
+        print("    • Tip: If Google asks you to create a Developer Profile first, complete that and re-open the link.")
+        print("    • Tip: Remember which Google account you use here for Steps 2, 3, and 4!")
+        open_browser_url(claim_url)
     try:
         input("    👉 Click 'Claim Credit' in browser, then press Enter here to continue... ")
     except (EOFError, KeyboardInterrupt):
