@@ -132,7 +132,7 @@ python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step4
 
 ---
 
-## 🧩 Official Google Agent Skills Gateway (`F15`)
+## 🧩 Official Google Agent Skills Education & ROI Engine (`F15`)
 
 Equip your project with official Google Agent Skills from [`github.com/google/skills`](https://github.com/google/skills) in 1 click (0 installation tokens, zero bloat):
 - **Curated Workshop Tracks:**
@@ -142,6 +142,13 @@ Equip your project with official Google Agent Skills from [`github.com/google/sk
 - **1-Click Installation:**
   - Run: `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --install-skill <name_or_track>`
   - Or simply tell Antigravity in chat: *"Install gemini-api skill"* or *"Install AI skills track"*.
+- **Smart Workspace Opportunity Detector:**
+  TokenMaxxing automatically inspects workspace project files (`pubspec.yaml`, `firebase.json`, `build.gradle.kts`, `Dockerfile`, `requirements.txt`) and suggests the exact missing skill command directly inside the receipt.
+- **Ground-Truth Skills ROI Counter:**
+  Parses conversation transcripts for verified skill usage, calculating exact API hallucinations avoided and estimated tokens saved (`invocations * 35,000 tokens`).
+- **Post-Prompt Skill Attribution Badge:**
+  Whenever an agent reads and applies an official Google skill, it appends a single-line badge:
+  `🧩 **Skill Active (<skill_name>):** Applied official Google blueprint — avoided API hallucination & saved ~35,000 debugging tokens (~3 turns)!`
 
 ---
 

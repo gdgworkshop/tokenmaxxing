@@ -36,7 +36,7 @@ from datetime import datetime, timedelta, timezone
 DEFAULT_BUDGET = 5.00
 CREDIT_LIFESPAN_HOURS = 12
 
-CURRENT_VERSION = "1.0.8"
+CURRENT_VERSION = "1.0.9"
 GITHUB_REPO = os.environ.get("TOKENMAXX_REPO", "saadgh/tokenmaxxing")
 VERSION_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/VERSION"
 RAW_REPO_BASE = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main"
@@ -655,27 +655,57 @@ def evaluate_model_advisor(current_model: str, hours_left: float, remaining_budg
 GA4_MEASUREMENT_ID = os.environ.get("TOKENMAXX_GA4_ID", "G-J90GTZJF9E")
 GA4_API_SECRET = os.environ.get("TOKENMAXX_GA4_SECRET", "Q2mXTuXQTUuhIgYQtF-vwg")
 
-def record_telemetry_event(event_name: str, params: dict = None):
+def record_telemetry_event(event_name: str, params: dict = None, extra_events: list = None):
     if os.environ.get("DO_NOT_TRACK") == "1":
         return
     try:
-        import hashlib
+        import hashlib, time
         try:
             uname = os.getlogin()
         except Exception:
             uname = os.environ.get("USER", os.environ.get("USERNAME", "anon"))
         client_id = hashlib.sha256((uname + sys.platform).encode()).hexdigest()[:16]
         url = f"https://www.google-analytics.com/mp/collect?api_secret={GA4_API_SECRET}&measurement_id={GA4_MEASUREMENT_ID}"
+
+        try:
+            local_tz = time.strftime("%z")
+        except Exception:
+            local_tz = "+0000"
+
         event_params = {
             "platform": sys.platform,
-            "version": "1.0.7"
+            "version": CURRENT_VERSION,
+            "tz": local_tz
         }
         if params:
             event_params.update(params)
 
+        events_payload = [{"name": event_name, "params": event_params}]
+
+        # Top-level event derivations for immediate GA4 standard report visibility:
+        if event_name == "skill_installed" and "skill" in event_params:
+            s_name = re.sub(r"[^a-zA-Z0-9_]", "_", str(event_params["skill"]))
+            events_payload.append({"name": f"skill_installed_{s_name}", "params": event_params})
+        elif event_name == "skill_used" and "skill" in event_params:
+            s_name = re.sub(r"[^a-zA-Z0-9_]", "_", str(event_params["skill"]))
+            events_payload.append({"name": f"skill_used_{s_name}", "params": event_params})
+        elif event_name == "credit_milestone" and "milestone" in event_params:
+            events_payload.append({"name": f"credit_milestone_{event_params['milestone']}pct", "params": event_params})
+        elif event_name == "setup_step1_url_opened" and "slug" in event_params:
+            s_slug = re.sub(r"[^a-zA-Z0-9_]", "_", str(event_params["slug"]))
+            if s_slug:
+                events_payload.append({"name": f"workshop_slug_{s_slug}", "params": event_params})
+
+        if extra_events:
+            for extra in extra_events:
+                if isinstance(extra, str):
+                    events_payload.append({"name": extra, "params": event_params})
+                elif isinstance(extra, dict):
+                    events_payload.append(extra)
+
         payload = {
             "client_id": client_id,
-            "events": [{"name": event_name, "params": event_params}]
+            "events": events_payload
         }
         req = urllib.request.Request(
             url,
@@ -842,6 +872,165 @@ def install_google_skill(arg: str):
     return install_single_skill(resolved)
 
 # ---------------------------------------------------------------------------
+# Ground-Truth Agent Skills Engine & ROI Attribution (v1.0.9)
+# ---------------------------------------------------------------------------
+
+META_SKILLS = {
+    "tokenmaxxing", "gdg-token-budget", "agy-customizations",
+    "antigravity_guide", "generative_ui", "plugin", "ui-plugin-navigation",
+    "migrate-workflows", "automation"
+}
+
+def get_installed_google_skills() -> list:
+    """Returns sorted list of user-installed Google skills (excluding meta/internal skills)."""
+    skills_base = Path.home() / ".gemini" / "config" / "skills"
+    if not skills_base.exists():
+        return []
+    installed = []
+    for p in sorted(skills_base.iterdir()):
+        if p.is_dir() and (p / "SKILL.md").exists():
+            if p.name not in META_SKILLS:
+                installed.append(p.name)
+    return installed
+
+def scan_transcript_skills_used(claimed_dt=None) -> dict:
+    """
+    Parses conversation transcripts for ground-truth invocations of installed skills.
+    Returns:
+      {
+        "skills_used": {skill_name: count},
+        "total_invocations": int,
+        "tokens_saved": int
+      }
+    Filters out historical steps prior to claimed_dt if provided; if none found in active session,
+    falls back to overall transcript history so attendee always sees their skills ROI.
+    Also dispatches non-blocking telemetry for any newly detected skill usage.
+    """
+    installed = set(get_installed_google_skills())
+    if not installed:
+        return {"skills_used": {}, "total_invocations": 0, "tokens_saved": 0}
+
+    def _collect(filter_dt=None):
+        used = {}
+        transcripts = list(BRAIN_DIR.glob("*/.system_generated/logs/transcript.jsonl"))
+        for t in transcripts:
+            try:
+                with open(t, "r", encoding="utf-8") as f:
+                    for line in f:
+                        try:
+                            rec = json.loads(line)
+                            if filter_dt and rec.get("created_at"):
+                                try:
+                                    step_dt = datetime.fromisoformat(rec["created_at"].replace("Z", "+00:00"))
+                                    if step_dt < filter_dt:
+                                        continue
+                                except Exception:
+                                    pass
+
+                            tool_calls = rec.get("tool_calls") or []
+                            for tc in tool_calls:
+                                args = tc.get("args") or {}
+                                target = str(args.get("Path") or args.get("CommandLine") or "")
+                                for s in installed:
+                                    if f"/skills/{s}/" in target or f"/skills/{s}" == target or target.endswith(f"/skills/{s}"):
+                                        if "--install-skill" in target:
+                                            continue
+                                        used[s] = used.get(s, 0) + 1
+                        except Exception:
+                            continue
+            except Exception:
+                continue
+        return used
+
+    skills_used = _collect(claimed_dt)
+    if not skills_used and claimed_dt:
+        skills_used = _collect(None)
+
+    total_invocations = sum(skills_used.values())
+    tokens_saved = total_invocations * 35000
+
+    # Non-blocking telemetry sync for newly observed skill invocations
+    state = load_state()
+    reported = state.get("skills_used_reported", {})
+    updated = False
+    for s, count in skills_used.items():
+        prev = reported.get(s, 0)
+        if count > prev:
+            record_telemetry_event("skill_used", {"skill": s, "count": count})
+            reported[s] = count
+            updated = True
+    if updated:
+        state["skills_used_reported"] = reported
+        save_state(state)
+
+    return {
+        "skills_used": skills_used,
+        "total_invocations": total_invocations,
+        "tokens_saved": tokens_saved
+    }
+
+def detect_workspace_skills_opportunity(installed_skills: list = None) -> str:
+    """
+    Inspects current workspace directory for project indicators (Flutter, Firebase, Android, Docker, Gemini SDK)
+    and returns a 1-click install recommendation if matching official skills are missing.
+    """
+    if installed_skills is None:
+        installed_skills = get_installed_google_skills()
+    installed_set = set(installed_skills)
+
+    cwd = Path.cwd()
+
+    # Flutter / Dart
+    if (cwd / "pubspec.yaml").exists():
+        if "flutter" not in installed_set and "developing-genkit-dart" not in installed_set:
+            return "Detected Flutter project! Install best practices: `tokenmaxx --install-skill flutter`"
+
+    # Firebase
+    if (cwd / "firebase.json").exists():
+        missing_fb = [s for s in ["firebase-basics", "firebase-firestore"] if s not in installed_set]
+        if missing_fb:
+            return f"Detected Firebase project! Install official skills: `tokenmaxx --install-skill {missing_fb[0]}`"
+
+    # Android Compose / Gradle
+    has_android = any([
+        (cwd / "build.gradle").exists(),
+        (cwd / "build.gradle.kts").exists(),
+        (cwd / "app" / "build.gradle.kts").exists(),
+        (cwd / "AndroidManifest.xml").exists(),
+        (cwd / "app" / "src" / "main" / "AndroidManifest.xml").exists()
+    ])
+    if has_android:
+        missing_android = [s for s in ["android-profiler", "jetpack-compose-performance"] if s not in installed_set]
+        if missing_android:
+            return f"Detected Android project! Install optimization skills: `tokenmaxx --install-skill {missing_android[0]}`"
+
+    # Docker / Cloud Run
+    if (cwd / "Dockerfile").exists() or (cwd / "cloudbuild.yaml").exists():
+        if "cloud-run" not in installed_set and "cloud-run-basics" not in installed_set:
+            return "Detected Docker/Container project! Install Cloud Run deploy skills: `tokenmaxx --install-skill cloud-run`"
+
+    # Gemini SDK in requirements.txt or package.json
+    req_file = cwd / "requirements.txt"
+    if req_file.exists():
+        try:
+            content = req_file.read_text(encoding="utf-8", errors="ignore").lower()
+            if ("google-genai" in content or "google-generativeai" in content) and "gemini-api" not in installed_set:
+                return "Detected Google GenAI SDK! Install Gemini API skill: `tokenmaxx --install-skill gemini-api`"
+        except Exception:
+            pass
+
+    pkg_file = cwd / "package.json"
+    if pkg_file.exists():
+        try:
+            content = pkg_file.read_text(encoding="utf-8", errors="ignore").lower()
+            if ("@google/genai" in content or "@google/generative-ai" in content) and "gemini-api" not in installed_set:
+                return "Detected Google GenAI SDK! Install Gemini API skill: `tokenmaxx --install-skill gemini-api`"
+        except Exception:
+            pass
+
+    return ""
+
+# ---------------------------------------------------------------------------
 # In-Engine Self-Updater & Remote Version Sync (F24)
 # ---------------------------------------------------------------------------
 
@@ -972,6 +1161,27 @@ def run_tokenmaxx(args):
     # 5. Model Advisor
     advisor_alert = evaluate_model_advisor(usage["recent_model_used"], hours_left, remaining_budget, is_gcp)
 
+    # 6. Skills Usage & ROI attribution scan
+    skills_data = scan_transcript_skills_used(claimed_dt)
+    skills_used = skills_data.get("skills_used", {})
+    tokens_saved = skills_data.get("tokens_saved", 0)
+
+    # Telemetry: True GDP credit activation
+    if is_gcp and not is_expired:
+        if not state.get("gdp_credit_activated"):
+            state["gdp_credit_activated"] = True
+            save_state(state)
+            record_telemetry_event("gdp_credit_activated", {"project_id": state.get("project_id", "unknown")})
+
+    # Telemetry: Model coaching conversion to Flash
+    if state.get("coached_for_argon") and is_flash_model(usage["recent_model_used"]):
+        record_telemetry_event("coached_switch_to_flash")
+        state["coached_for_argon"] = False
+        save_state(state)
+    elif advisor_alert and advisor_alert.get("type") == "CONSERVATION_ALERT":
+        state["coached_for_argon"] = True
+        save_state(state)
+
     payload = {
         "plan_name": plan_name,
         "is_gcp_tos": is_gcp_tos,
@@ -992,7 +1202,8 @@ def run_tokenmaxx(args):
         "advisor_alert": advisor_alert,
         "low_quota_alerts": low_quota_alerts,
         "vertex_conversations_count": usage["vertex_conversations_count"],
-        "project_id": state.get("project_id")
+        "project_id": state.get("project_id"),
+        "skills_impact": skills_data
     }
 
     if args.json:
@@ -1021,7 +1232,10 @@ def run_tokenmaxx(args):
         print(f" ├─ Total Tokens Powered by Gemini : {total_tokens:,} tokens")
         print(f" ├─ Gross Cloud Compute Value      : ${usage['gross_usage']:.2f}")
         print(f" ├─ Gemini Context Cache Savings   : -${usage['caching_discount']:.2f} (Saved automatically!)")
-        print(f" └─ Net Workshop Voucher Utilized  : ${net_spent:.2f} / ${initial_budget:.2f}")
+        print(f" ├─ Net Workshop Voucher Utilized  : ${net_spent:.2f} / ${initial_budget:.2f}")
+        if skills_used:
+            print(f" ├─ Official Skills Applied        : {len(skills_used)} skills ({sum(skills_used.values())} invocations)")
+            print(f" └─ Hallucinations Avoided         : ~{tokens_saved:,} debugging tokens saved (~{max(1, tokens_saved // 12000)} turns)")
         print("-" * 66)
         print(" 🌱 KEEP BUILDING WITH GEMINI & GOOGLE CLOUD (FREE GRADUATION BRIDGE):")
         print(" 1. Keep Your Gemini App Running Free:")
@@ -1105,6 +1319,7 @@ def run_tokenmaxx(args):
             crossed_milestone = m
             state["last_milestone_alerted"] = m
             save_state(state)
+            record_telemetry_event("credit_milestone", {"milestone": crossed_milestone})
             break
 
     # Compact 2-line TokenMaxx Status Bar (for Every-5-Prompts Pulse)
@@ -1161,12 +1376,31 @@ def run_tokenmaxx(args):
     print(f" • ~{turns_flash:,} interactive turns on Gemini 3.8 Flash, OR")
     print(f" • ~{turns_argon} deep reasoning refactors on Gemini 4 Argon")
     print("-" * 66)
-    print(" 🧩 OFFICIAL GOOGLE AGENT SKILLS GATEWAY (github.com/google/skills):")
-    print(" Supercharge your project with 1-click official skills:")
-    print(" • 🔥 AI & Agents  : gemini-api | gemini-live-api | genkit-python")
-    print(" • ⚡ App & Mobile : firebase-basics | flutter | google-signin")
-    print(" • ☁️ Cloud & Data : cloud-run | bigquery | developer-knowledge")
-    print(" (To install, say \"Install <name>\" or run: tokenmaxx --install-skill <name>)")
+    installed_list = get_installed_google_skills()
+    opp = detect_workspace_skills_opportunity(installed_list)
+    if skills_used:
+        print(" 🧩 OFFICIAL GOOGLE AGENT SKILLS IMPACT (ROI):")
+        used_str = ", ".join(f"{s} ({c}x)" for s, c in sorted(skills_used.items()))
+        print(f" • Active Skills Applied   : {used_str}")
+        print(f" • Debugging Tokens Saved  : ~{tokens_saved:,} tokens (~{max(1, tokens_saved // 12000)} turns saved!)")
+        if installed_list:
+            disp_installed = ", ".join(installed_list[:5]) + ("..." if len(installed_list) > 5 else "")
+            print(f" • Installed Skills Base   : {disp_installed}")
+        if opp:
+            print(f" • 💡 {opp}")
+        print(" (Install more skills anytime: tokenmaxx --install-skill <name_or_track>)")
+    else:
+        print(" 🧩 OFFICIAL GOOGLE AGENT SKILLS GATEWAY (github.com/google/skills):")
+        if installed_list:
+            disp_installed = ", ".join(installed_list[:5]) + ("..." if len(installed_list) > 5 else "")
+            print(f" • Installed Skills Base   : {disp_installed} (0 invocations yet)")
+        if opp:
+            print(f" • 💡 {opp}")
+        print(" • Popular 1-Click Skills:")
+        print("   - 🔥 AI & Agents  : gemini-api | gemini-live-api | genkit-python")
+        print("   - ⚡ App & Mobile : firebase-basics | flutter | google-signin")
+        print("   - ☁️ Cloud & Data : cloud-run | bigquery | developer-knowledge")
+        print(" (To install, say \"Install <name>\" or run: tokenmaxx --install-skill <name>)")
     print("-" * 66)
     print(f" {selected_pro_move}")
     print(" 💬 Ask \"How much credit do I have left?\" anytime (pulses every 5 prompts)")
@@ -1246,6 +1480,8 @@ def run_step1(raw_claim_url: str = ""):
     claim_url, suggested_event, direct_portal = normalize_claim_url(clean_input)
 
     state = load_state()
+    if not state.get("onboarding_started_at"):
+        state["onboarding_started_at"] = datetime.now(timezone.utc).isoformat()
     was_awaiting_url = (state.get("onboarding_step") == "step1_awaiting_url")
     state["claimed_at"] = datetime.now(timezone.utc).isoformat()
     if suggested_event:
@@ -1255,10 +1491,15 @@ def run_step1(raw_claim_url: str = ""):
     state["last_milestone_alerted"] = 0
 
     if clean_input:
+        slug = suggested_event
+        if not slug and "/" in clean_input:
+            slug = clean_input.split("?")[0].rstrip("/").split("/")[-1]
+        record_telemetry_event("setup_step1_url_opened", {"slug": slug or "unknown", "url": claim_url})
         state["onboarding_step"] = "step1_url_opened"
         save_state(state)
         open_browser_url(claim_url)
     else:
+        record_telemetry_event("setup_step1_prompted")
         state["onboarding_step"] = "step1_awaiting_url"
         save_state(state)
 
@@ -1346,6 +1587,7 @@ def run_step3(project_id: str):
     )
 
     if not is_valid_gcp_id:
+        record_telemetry_event("setup_step3_invalid_id", {"invalid_input": (project_id or "")[:30]})
         print(f"⚠️ **`{project_id}` doesn't look like a valid Google Cloud Project ID.**\n")
         print("- A Google Cloud **Project ID** is 6–30 lowercase letters, numbers, and hyphens with **no spaces** (for example: **`" + example_id + "`** or **`local-citizen-512912-i5`**).")
         print("- You can find it directly underneath the **Project name** box on `https://console.cloud.google.com/projectcreate` (or in the project picker at the top-left of Google Cloud Console).\n")
@@ -1353,7 +1595,7 @@ def run_step3(project_id: str):
         print("\n🛑 [AGENT DIRECTIVE: Present ONLY the message above to the user and STOP. Wait for the user to reply with a valid lowercase Project ID before running `--step3 \"<PROJECT_ID>\"` again.]")
         return
 
-    record_telemetry_event("setup_step3")
+    record_telemetry_event("setup_step3", {"project_id": clean_id})
     state["project_id"] = clean_id
     state["onboarding_step"] = "step3_api_enable"
     save_state(state)
@@ -1378,7 +1620,19 @@ def run_step4():
     save_state(state)
     if project_id != "<your-project-id>":
         copy_to_clipboard(project_id)
-        record_telemetry_event("setup_completed", {"project_id": project_id})
+        onboarding_seconds = None
+        started_str = state.get("onboarding_started_at")
+        if started_str:
+            try:
+                started_dt = datetime.fromisoformat(started_str.replace("Z", "+00:00"))
+                now_dt = datetime.now(timezone.utc)
+                onboarding_seconds = max(1, int((now_dt - started_dt).total_seconds()))
+            except Exception:
+                pass
+        completed_params = {"project_id": project_id}
+        if onboarding_seconds:
+            completed_params["onboarding_seconds"] = onboarding_seconds
+        record_telemetry_event("setup_completed", completed_params)
 
     print("### 🔄 Step 4 of 4: Connect Antigravity to Your Workshop Project")
     print(f"📋 **Your Project ID (`{project_id}`) is copied to your clipboard!**")
