@@ -121,11 +121,11 @@ trigger: always_on
    - When helping a user set up workshop/cloud credits, NEVER dump all 4 steps at once and NEVER output `<YOUR_PROJECT_ID>`. Run `tokenmaxx.py --step1`, `--step2`, `--step3 <PROJECT_ID>`, and `--step4` one step per turn, stopping and waiting for the user's reply after each step.
    - **CRITICAL:** If `--step1` was run without a credit URL and the user replies by pasting a credit link (e.g. `https://g.dev/credits/...` or `https://me.developers.google.com/...`), you MUST run `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step1 "<USER_CREDIT_URL>"` to open their credit link in the browser first, and wait for them to reply `"claimed"` before running `--step2`!
 4. **Pre-Execution Heavy Token Guard:** If an operation involves reading massive un-indexed repositories, unconstrained subagent recursions, or heavy multimodal files that could consume >50,000 tokens, warn the user with a Token Burn Alert before executing.
-5. **Official Google Agent Skills Gateway (github.com/google/skills):**
+5. **Official Google Agent Skills & Marketplace Gateway:**
    - Whenever the user asks to install official Google agent skills (e.g., *"Install Gemini API skill"*, *"Install Firebase skill"*, *"Install cloud run skill"*, *"Install AI skills track"*), run:
      `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --install-skill <skill_name_or_track>`
      and confirm the installation with a brief note of what new capabilities were unlocked.
-   - **Contextual JIT Nudge:** When a user starts a project using Flutter (`pubspec.yaml`), Android Compose (`build.gradle.kts`), Firebase (`firebase.json`), or Gemini API in their workshop workspace, gently mention that the matching official Google skill is available if they would like to install it.
+   - **Contextual JIT Nudge (Marketplace Integration):** When a user starts a project using Flutter (`pubspec.yaml`), Android Compose (`build.gradle.kts`), Firebase (`firebase.json`), Docker/Cloud Run (`Dockerfile`), or Gemini API (`google-genai`), gently recommend the matching official Google Marketplace plugin card (e.g. `<plugin-card catalog-id="antigravity-plugins-official/plugin/google-cloud-developer"></plugin-card>`, `gemini-api`, `firebase`, or `flutter`) so the attendee can install it with 1-click.
 6. **Zero-Key Gemini SDK & 1-Prompt Cloud Run Bootstrapper:**
    - **Auto-Inject Workshop Project ID (`google-genai` SDK):** Whenever a workshop user (`Agent Platform` / `isGcpTos: true`) asks to build an app that calls Gemini, read `project_id` from `~/.gemini/config/skills/tokenmaxxing/state.json` and configure the official Google Gen AI SDK in Vertex AI mode (`genai.Client(vertexai=True, project="<project_id>", location="global")` or `GOOGLE_GENAI_USE_VERTEXAI=true`, `GOOGLE_CLOUD_PROJECT=<project_id>`, `GOOGLE_CLOUD_LOCATION=global`) so their app works on the first run using their $5.00 workshop credit without needing an API key!
    - **1-Prompt Cloud Run Deployment:** Whenever the user asks to deploy their workshop app (e.g., *"Deploy my app to Cloud Run"*), read `project_id` from `~/.gemini/config/skills/tokenmaxxing/state.json` (and install the `cloud-run` skill if needed) to deploy directly to their workshop project (`gcloud run deploy --source . --project <project_id>`).
@@ -163,7 +163,7 @@ if [ "${DO_NOT_TRACK}" != "1" ]; then
     CLIENT_ID=$(python3 -c "import hashlib, os, sys; uname = os.environ.get('USER', os.environ.get('USERNAME', 'anon')); print(hashlib.sha256((uname + sys.platform).encode()).hexdigest()[:16])" 2>/dev/null || whoami 2>/dev/null || echo "anon_user")
     (curl -s -X POST "https://www.google-analytics.com/mp/collect?api_secret=Q2mXTuXQTUuhIgYQtF-vwg&measurement_id=G-J90GTZJF9E" \
           -H "Content-Type: application/json" \
-          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.10\"}}]}" \
+          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.11\"}}]}" \
           --max-time 1 >/dev/null 2>&1 &) || true
 fi
 

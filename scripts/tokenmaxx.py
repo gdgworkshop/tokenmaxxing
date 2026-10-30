@@ -36,7 +36,7 @@ from datetime import datetime, timedelta, timezone
 DEFAULT_BUDGET = 5.00
 CREDIT_LIFESPAN_HOURS = 12
 
-CURRENT_VERSION = "1.0.10"
+CURRENT_VERSION = "1.0.11"
 GITHUB_REPO = os.environ.get("TOKENMAXX_REPO", "saadgh/tokenmaxxing")
 VERSION_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/VERSION"
 RAW_REPO_BASE = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main"
@@ -969,10 +969,10 @@ def scan_transcript_skills_used(claimed_dt=None) -> dict:
         "tokens_saved": tokens_saved
     }
 
-def detect_workspace_skills_opportunity(installed_skills: list = None) -> str:
+def detect_workspace_skills_opportunity(installed_skills: list = None) -> dict:
     """
-    Inspects current workspace directory for project indicators (Flutter, Firebase, Android, Docker, Gemini SDK)
-    and returns a 1-click install recommendation if matching official skills are missing.
+    Inspects current workspace directory for project indicators (Flutter, Firebase, Android, Docker/Cloud Run, Gemini SDK)
+    and returns a recommendation dict with message and official Google Marketplace plugin catalog ID if available.
     """
     if installed_skills is None:
         installed_skills = get_installed_google_skills()
@@ -980,16 +980,33 @@ def detect_workspace_skills_opportunity(installed_skills: list = None) -> str:
 
     cwd = Path.cwd()
 
-    # Flutter / Dart
-    if (cwd / "pubspec.yaml").exists():
-        if "flutter" not in installed_set and "developing-genkit-dart" not in installed_set:
-            return "Detected Flutter project! Install best practices: `tokenmaxx --install-skill flutter`"
+    # Google Cloud Run / Containerized microservices
+    if (cwd / "Dockerfile").exists() or (cwd / "cloudbuild.yaml").exists():
+        if "cloud-run" not in installed_set and "cloud-run-basics" not in installed_set:
+            return {
+                "message": "Detected Docker/Container project! Recommended Google Cloud Developer plugin for 1-click Cloud Run deploy:",
+                "plugin_id": "antigravity-plugins-official/plugin/google-cloud-developer",
+                "cli_fallback": "tokenmaxx --install-skill cloud-run"
+            }
 
-    # Firebase
+    # Firebase backend & database
     if (cwd / "firebase.json").exists():
         missing_fb = [s for s in ["firebase-basics", "firebase-firestore"] if s not in installed_set]
         if missing_fb:
-            return f"Detected Firebase project! Install official skills: `tokenmaxx --install-skill {missing_fb[0]}`"
+            return {
+                "message": "Detected Firebase project! Supercharge with the official Firebase plugin:",
+                "plugin_id": "antigravity-plugins-official/plugin/firebase",
+                "cli_fallback": f"tokenmaxx --install-skill {missing_fb[0]}"
+            }
+
+    # Flutter / Dart Mobile Apps
+    if (cwd / "pubspec.yaml").exists():
+        if "flutter" not in installed_set and "developing-genkit-dart" not in installed_set:
+            return {
+                "message": "Detected Flutter app! Build native UIs with the official Dart and Flutter plugin:",
+                "plugin_id": "antigravity-plugins-official/plugin/flutter",
+                "cli_fallback": "tokenmaxx --install-skill flutter"
+            }
 
     # Android Compose / Gradle
     has_android = any([
@@ -1002,33 +1019,41 @@ def detect_workspace_skills_opportunity(installed_skills: list = None) -> str:
     if has_android:
         missing_android = [s for s in ["android-profiler", "jetpack-compose-performance"] if s not in installed_set]
         if missing_android:
-            return f"Detected Android project! Install optimization skills: `tokenmaxx --install-skill {missing_android[0]}`"
+            return {
+                "message": "Detected Android project! Optimize app performance with the Android CLI plugin:",
+                "plugin_id": "antigravity-plugins-official/plugin/android-cli-plugin",
+                "cli_fallback": f"tokenmaxx --install-skill {missing_android[0]}"
+            }
 
-    # Docker / Cloud Run
-    if (cwd / "Dockerfile").exists() or (cwd / "cloudbuild.yaml").exists():
-        if "cloud-run" not in installed_set and "cloud-run-basics" not in installed_set:
-            return "Detected Docker/Container project! Install Cloud Run deploy skills: `tokenmaxx --install-skill cloud-run`"
-
-    # Gemini SDK in requirements.txt or package.json
+    # Gemini API SDK in Python requirements.txt
     req_file = cwd / "requirements.txt"
     if req_file.exists():
         try:
             content = req_file.read_text(encoding="utf-8", errors="ignore").lower()
             if ("google-genai" in content or "google-generativeai" in content) and "gemini-api" not in installed_set:
-                return "Detected Google GenAI SDK! Install Gemini API skill: `tokenmaxx --install-skill gemini-api`"
+                return {
+                    "message": "Detected Google Gen AI SDK! Unlock multimodal & Vertex AI features with the Gemini API plugin:",
+                    "plugin_id": "antigravity-plugins-official/plugin/gemini-api",
+                    "cli_fallback": "tokenmaxx --install-skill gemini-api"
+                }
         except Exception:
             pass
 
+    # Gemini API SDK in Node package.json
     pkg_file = cwd / "package.json"
     if pkg_file.exists():
         try:
             content = pkg_file.read_text(encoding="utf-8", errors="ignore").lower()
             if ("@google/genai" in content or "@google/generative-ai" in content) and "gemini-api" not in installed_set:
-                return "Detected Google GenAI SDK! Install Gemini API skill: `tokenmaxx --install-skill gemini-api`"
+                return {
+                    "message": "Detected Google Gen AI SDK! Unlock multimodal & Vertex AI features with the Gemini API plugin:",
+                    "plugin_id": "antigravity-plugins-official/plugin/gemini-api",
+                    "cli_fallback": "tokenmaxx --install-skill gemini-api"
+                }
         except Exception:
             pass
 
-    return ""
+    return {}
 
 # ---------------------------------------------------------------------------
 # In-Engine Self-Updater & Remote Version Sync (F24)
@@ -1378,6 +1403,12 @@ def run_tokenmaxx(args):
     print("-" * 66)
     installed_list = get_installed_google_skills()
     opp = detect_workspace_skills_opportunity(installed_list)
+    opp_text = ""
+    if opp:
+        opp_text = f" • 💡 {opp.get('message', '')} `{opp.get('cli_fallback', '')}`"
+        if opp.get("plugin_id"):
+            opp_text += f"\n   Marketplace Card: <plugin-card catalog-id=\"{opp['plugin_id']}\"></plugin-card>"
+
     if skills_used:
         print(" 🧩 OFFICIAL GOOGLE AGENT SKILLS IMPACT (ROI):")
         used_str = ", ".join(f"{s} ({c}x)" for s, c in sorted(skills_used.items()))
@@ -1386,16 +1417,16 @@ def run_tokenmaxx(args):
         if installed_list:
             disp_installed = ", ".join(installed_list[:5]) + ("..." if len(installed_list) > 5 else "")
             print(f" • Installed Skills Base   : {disp_installed}")
-        if opp:
-            print(f" • 💡 {opp}")
+        if opp_text:
+            print(opp_text)
         print(" (Install more skills anytime: tokenmaxx --install-skill <name_or_track>)")
     else:
         print(" 🧩 OFFICIAL GOOGLE AGENT SKILLS GATEWAY (github.com/google/skills):")
         if installed_list:
             disp_installed = ", ".join(installed_list[:5]) + ("..." if len(installed_list) > 5 else "")
             print(f" • Installed Skills Base   : {disp_installed} (0 invocations yet)")
-        if opp:
-            print(f" • 💡 {opp}")
+        if opp_text:
+            print(opp_text)
         print(" • Popular 1-Click Skills:")
         print("   - 🔥 AI & Agents  : gemini-api | gemini-live-api | genkit-python")
         print("   - ⚡ App & Mobile : firebase-basics | flutter | google-signin")
@@ -1661,6 +1692,9 @@ def run_step4():
     print("Once you open **`+ New Conversation`**, type this as your very first message in the new chat:")
     print("👉 **`How much credit and tokens do I have left?`**")
     print("\n*(From there, TokenMaxxing will automatically show your compact balance bar every 5 prompts and alert you at 50%, 70%, and 90% usage!)*")
+    print("\n💡 **Google Cloud Developer Marketplace Plugin (Recommended):**")
+    print("To get official Google Cloud architectural blueprints, CLI guardrails, and live documentation in your new chat:")
+    print("<plugin-card catalog-id=\"antigravity-plugins-official/plugin/google-cloud-developer\"></plugin-card>")
 
 
 # ---------------------------------------------------------------------------
