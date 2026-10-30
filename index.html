@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TokenMaxxing — GDG Workshop Companion for Google Antigravity</title>
+  <meta name="description" content="The official economic co-pilot and workshop companion for Google Antigravity. Track tokens, manage $5 GDP credits, unlock official agent skills, and deploy to Cloud Run.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: rgba(22, 27, 46, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover: rgba(30, 38, 64, 0.9);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent-blue: #38bdf8;
+      --accent-cyan: #22d3ee;
+      --accent-green: #34d399;
+      --accent-yellow: #fbbf24;
+      --accent-purple: #a855f7;
+      --google-blue: #4285F4;
+      --google-red: #EA4335;
+      --google-yellow: #FBBC05;
+      --google-green: #34A853;
+      --glow: rgba(56, 189, 248, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.5;
+      position: relative;
+    }
+
+    /* Ambient background glowing circles */
+    .glow-circle-1 {
+      position: fixed;
+      top: -150px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.18) 0%, rgba(11, 15, 25, 0) 70%);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .glow-circle-2 {
+      position: fixed;
+      bottom: -200px;
+      right: -100px;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.12) 0%, rgba(11, 15, 25, 0) 70%);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header & Badge */
+    header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .badge-bar {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 9999px;
+      padding: 6px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #cbd5e1;
+      margin-bottom: 20px;
+      backdrop-filter: blur(12px);
+    }
+
+    .google-dots {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+    .dot.blue { background-color: var(--google-blue); }
+    .dot.red { background-color: var(--google-red); }
+    .dot.yellow { background-color: var(--google-yellow); }
+    .dot.green { background-color: var(--google-green); }
+
+    h1 {
+      font-family: 'Google Sans', sans-serif;
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: clamp(16px, 2.5vw, 19px);
+      color: var(--text-muted);
+      max-width: 680px;
+      margin: 0 auto;
+      font-weight: 400;
+    }
+
+    /* Primary Hero Action Card */
+    .action-card {
+      background: linear-gradient(180deg, rgba(30, 41, 69, 0.75) 0%, rgba(17, 24, 39, 0.85) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 40px;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), 0 0 35px -5px var(--glow);
+      backdrop-filter: blur(16px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .action-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+    }
+
+    .card-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--accent-cyan);
+    }
+
+    .prompt-box {
+      background: #060913;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 18px 20px;
+      font-family: 'Google Sans Mono', monospace;
+      font-size: clamp(14px, 2vw, 16px);
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .prompt-box:hover {
+      border-color: rgba(56, 189, 248, 0.4);
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.1);
+    }
+
+    .prompt-text {
+      word-break: break-all;
+    }
+
+    .copy-btn {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 22px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+      flex-shrink: 0;
+    }
+
+    .copy-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(2, 132, 199, 0.45);
+      background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    }
+
+    .copy-btn:active {
+      transform: translateY(1px);
+    }
+
+    .copy-btn.copied {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+    }
+
+    .action-instruction {
+      font-size: 14px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .action-instruction strong {
+      color: #e2e8f0;
+    }
+
+    /* Grid of Features / Problems Solved */
+    .section-title {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    .feature-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 22px;
+      backdrop-filter: blur(12px);
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .feature-card:hover {
+      background: var(--card-hover);
+      border-color: rgba(255, 255, 255, 0.16);
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      font-size: 26px;
+      margin-bottom: 12px;
+      display: inline-block;
+    }
+
+    .feature-card h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin-bottom: 6px;
+    }
+
+    .feature-card p {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Prompts Showcase Section */
+    .prompts-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 26px;
+      margin-bottom: 40px;
+      backdrop-filter: blur(12px);
+    }
+
+    .prompts-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .prompt-item {
+      background: rgba(11, 15, 25, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      transition: border-color 0.2s;
+    }
+
+    .prompt-item:hover {
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+
+    .prompt-item-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14.5px;
+    }
+
+    .prompt-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-left: 6px;
+    }
+
+    .mini-copy-btn {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #cbd5e1;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .mini-copy-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.3);
+      color: #ffffff;
+    }
+
+    .mini-copy-btn.copied {
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+    }
+
+    /* Terminal Alternative Section */
+    .terminal-section {
+      background: #070a13;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 22px;
+      margin-bottom: 40px;
+    }
+
+    .terminal-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .terminal-code {
+      background: #000000;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-family: 'Google Sans Mono', monospace;
+      font-size: 13.5px;
+      color: #a5f3fc;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      overflow-x: auto;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      font-size: 13px;
+      color: #64748b;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    footer a {
+      color: #94a3b8;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    footer a:hover {
+      color: var(--accent-blue);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 640px) {
+      .prompt-box {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .copy-btn {
+        justify-content: center;
+      }
+      .prompt-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .mini-copy-btn {
+        align-self: flex-end;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="glow-circle-1"></div>
+  <div class="glow-circle-2"></div>
+
+  <div class="container">
+
+    <!-- Header -->
+    <header>
+      <div class="badge-bar">
+        <span class="google-dots">
+          <span class="dot blue"></span>
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+        </span>
+        Google Developer Groups &amp; Innovators Workshop Co-Pilot
+      </div>
+      <h1>TokenMaxxing</h1>
+      <p class="subtitle">
+        The economic co-pilot for Google Antigravity. Track tokens, stretch your $5 Google Cloud credit across 1,000+ turns, and deploy to Cloud Run with zero API keys.
+      </p>
+    </header>
+
+    <!-- Main Hero Card: 1-Click Prompt Copy -->
+    <div class="action-card">
+      <div class="card-label">
+        <span>⚡ Quick Start in Antigravity</span>
+        <span>Version 1.0.10</span>
+      </div>
+
+      <div class="prompt-box">
+        <span class="prompt-text" id="primary-prompt">Help me setup my credits. Follow instructions at https://g.dev/events/tokenmaxxing</span>
+        <button class="copy-btn" id="primary-copy-btn" onclick="copyPrompt('primary-prompt', 'primary-copy-btn')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span id="primary-btn-label">Copy Prompt</span>
+        </button>
+      </div>
+
+      <div class="action-instruction">
+        👉 <strong>How to use:</strong> Click <strong>Copy Prompt</strong> above, switch to your <strong>Antigravity 2.0</strong> chat, paste it, and press Enter! The agent will guide you step-by-step.
+      </div>
+    </div>
+
+    <!-- What it does / Key Highlights -->
+    <h2 class="section-title">✨ What TokenMaxxing Does for You</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <span class="feature-icon">⛽</span>
+        <h3>Real-Time Gas Gauge</h3>
+        <p>Google Cloud billing can take hours to update. TokenMaxxing prices every token in real-time with context caching discounts so you always know your remaining budget and 12h countdown.</p>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">🧠</span>
+        <h3>Model Efficiency Advisor</h3>
+        <p>Recommends Gemini 3.8 Flash to stretch your $5 grant across ~1,000+ turns. Warns against burning credits on Argon, then inverts in the final 2 hours to help you burn compute before it expires!</p>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">🔑</span>
+        <h3>Zero-Key Gemini SDK</h3>
+        <p>Building an AI app? TokenMaxxing configures the official Google Gen AI SDK in Vertex AI mode with your workshop project so your code runs instantly without managing or leaking API keys.</p>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">🧩</span>
+        <h3>Official Google Agent Skills</h3>
+        <p>Avoid API hallucinations with verified blueprints from <code>github.com/google/skills</code>. Includes 1-click install for Gemini API, Firebase, Flutter, Android, and Cloud Run.</p>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">🚀</span>
+        <h3>1-Prompt Cloud Run Deploy</h3>
+        <p>Ready to share your creation? Simply ask <em>"Deploy my app to Cloud Run"</em> to get a live public <code>https://...run.app</code> URL funded directly by your workshop credits.</p>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">🎓</span>
+        <h3>Hour-12 Graduation Bridge</h3>
+        <p>When the 12-hour workshop voucher completes, TokenMaxxing shows your impact stats and guides you to keep your project running free with Google AI Studio.</p>
+      </div>
+    </div>
+
+    <!-- Useful Prompts Once Connected -->
+    <div class="prompts-card">
+      <h2 class="section-title" style="margin-bottom: 16px;">💬 Try These Prompts in Antigravity Anytime</h2>
+      <div class="prompts-list">
+        
+        <div class="prompt-item">
+          <div class="prompt-item-left">
+            <span>📊</span>
+            <div>
+              <strong id="p1">How much credit and tokens do I have left?</strong>
+              <div class="prompt-desc">Displays your live voucher balance, tokens by model tier, and countdown timer.</div>
+            </div>
+          </div>
+          <button class="mini-copy-btn" id="b1" onclick="copyPrompt('p1', 'b1')">Copy</button>
+        </div>
+
+        <div class="prompt-item">
+          <div class="prompt-item-left">
+            <span>🧩</span>
+            <div>
+              <strong id="p2">Install official Gemini API and Firebase agent skills</strong>
+              <div class="prompt-desc">Downloads verified Google skills from github.com/google/skills with zero install bloat.</div>
+            </div>
+          </div>
+          <button class="mini-copy-btn" id="b2" onclick="copyPrompt('p2', 'b2')">Copy</button>
+        </div>
+
+        <div class="prompt-item">
+          <div class="prompt-item-left">
+            <span>☁️</span>
+            <div>
+              <strong id="p3">Deploy my app to Cloud Run</strong>
+              <div class="prompt-desc">Builds and deploys your containerized app directly to your workshop GCP project.</div>
+            </div>
+          </div>
+          <button class="mini-copy-btn" id="b3" onclick="copyPrompt('p3', 'b3')">Copy</button>
+        </div>
+
+        <div class="prompt-item">
+          <div class="prompt-item-left">
+            <span>🏁</span>
+            <div>
+              <strong id="p4">Give me a workshop wrap-up and graduation bridge</strong>
+              <div class="prompt-desc">Shows your total session stats and steps to continue building for free.</div>
+            </div>
+          </div>
+          <button class="mini-copy-btn" id="b4" onclick="copyPrompt('p4', 'b4')">Copy</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Terminal Alternative (For Devs who prefer CLI) -->
+    <div class="terminal-section">
+      <div class="terminal-title">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="4 17 10 11 4 5"></polyline>
+          <line x1="12" y1="19" x2="20" y2="19"></line>
+        </svg>
+        Terminal Alternative (Optional)
+      </div>
+      <div class="terminal-code">
+        <span id="term-cmd">curl -fsSL https://g.dev/events/tokenmaxxing | bash</span>
+        <button class="mini-copy-btn" id="term-b" onclick="copyPrompt('term-cmd', 'term-b')">Copy Command</button>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <p>
+        Built with ❤️ for the Google Developer Community • 
+        <a href="https://github.com/saadgh/tokenmaxxing" target="_blank" rel="noopener">GitHub Repository</a> • 
+        <a href="https://me.developers.google.com/benefits" target="_blank" rel="noopener">Google Developer Benefits</a>
+      </p>
+    </footer>
+
+  </div>
+
+  <script>
+    function copyPrompt(elementId, buttonId) {
+      const text = document.getElementById(elementId).innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById(buttonId);
+        const originalContent = btn.innerHTML;
+        btn.classList.add('copied');
+        
+        if (buttonId === 'primary-copy-btn') {
+          btn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>Copied! Paste in Antigravity</span>
+          `;
+        } else {
+          btn.innerHTML = `✓ Copied`;
+        }
+
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.innerHTML = originalContent;
+        }, 2200);
+      }).catch(err => {
+        console.error('Copy failed:', err);
+      });
+    }
+  </script>
+</body>
+</html>
