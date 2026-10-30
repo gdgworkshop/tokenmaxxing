@@ -1464,13 +1464,20 @@ def detect_antigravity_environment() -> dict:
 # Turn-by-Turn Conversational Onboarding Steps (P0-A, P0-B, P0-D)
 # ---------------------------------------------------------------------------
 
+INSTALLER_URL_MARKERS = [
+    "tokenmaxxing", "tokenmaxing", "tokenmaxx", "tokenmax",
+    "g.dev/ai/workshop", "g.dev/ai/tokens", "g.dev/ai/credits",
+    "g.dev/ai/copilot", "g.dev/ai/companion", "g.dev/ai/skillshelper",
+    "g.dev/workshop", "install.sh", "raw.githubusercontent.com", "<", ">"
+]
+
 def run_step1(raw_claim_url: str = ""):
     record_telemetry_event("setup_step1")
     env = detect_antigravity_environment()
 
     clean_input = (raw_claim_url or "").strip()
     # Guard: Never treat the TokenMaxxing installer URL itself or confirmation words as an event credit claim URL!
-    if any(k in clean_input.lower() for k in ["tokenmaxxing", "install.sh", "raw.githubusercontent.com", "<", ">"]):
+    if any(k in clean_input.lower() for k in INSTALLER_URL_MARKERS):
         clean_input = ""
     if clean_input.lower() in {"claimed", "done", "yes", "ok", "next", "skip"}:
         # If the agent accidentally passed "claimed" to --step1 instead of calling --step2, redirect seamlessly to Step 2!
