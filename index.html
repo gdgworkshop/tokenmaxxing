@@ -437,6 +437,14 @@
       }
     }
   </style>
+  <!-- Google Analytics 4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-J90GTZJF9E"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-J90GTZJF9E');
+  </script>
 </head>
 <body>
 
@@ -606,6 +614,9 @@
   <script>
     function copyPrompt(elementId, buttonId) {
       const text = document.getElementById(elementId).innerText;
+      if (typeof gtag === 'function') {
+        gtag('event', 'prompt_copied', { 'prompt_id': elementId, 'prompt_text': text.substring(0, 60) });
+      }
       navigator.clipboard.writeText(text).then(() => {
         const btn = document.getElementById(buttonId);
         const originalContent = btn.innerHTML;
