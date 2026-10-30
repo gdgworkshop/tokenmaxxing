@@ -36,7 +36,7 @@ from datetime import datetime, timedelta, timezone
 DEFAULT_BUDGET = 5.00
 CREDIT_LIFESPAN_HOURS = 12
 
-CURRENT_VERSION = "1.0.12"
+CURRENT_VERSION = "1.0.13"
 GITHUB_REPO = os.environ.get("TOKENMAXX_REPO", "saadgh/tokenmaxxing")
 VERSION_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/VERSION"
 RAW_REPO_BASE = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main"
@@ -1281,16 +1281,8 @@ def run_tokenmaxx(args):
         print("=" * 66)
         print(" ⚡ TOKENMAXXING — ACTIVE PLAN: GOOGLE AI PRO")
         print("=" * 66)
-        print(" ℹ️  You are currently operating on your personal Google AI Pro plan.")
-        print("    Tokens and dollar consumption are unlimited under your subscription.")
-
-        if timer_info["has_timer"] and hours_left > 0:
-            print("-" * 66)
-            print(f" ⏳ Background GDP Credit Clock: {timer_info['formatted']}")
-            print(f"    Available Voucher Balance  : ${remaining_budget:.2f} remaining")
-            if state.get("project_id"):
-                print(f"    Active Workshop Project    : {state['project_id']}")
-            print("    (Switch to 'Agent Platform' mode if you want to consume workshop credits)")
+        print(" ℹ️  You are operating on your personal Google AI Pro plan.")
+        print("    Prompts and model turns are unlimited under your subscription.")
 
         if low_quota_alerts:
             print("-" * 66)
@@ -1343,15 +1335,13 @@ def run_tokenmaxx(args):
         print(" ⚡ TOKENMAXXING — ACTIVE PLAN: GOOGLE AI FREE TIER")
         print("=" * 66)
         print(" ℹ️  You are currently signed into your personal Free Tier account.")
-        if timer_info["has_timer"] and hours_left > 0:
+        if state.get("project_id"):
             print("-" * 66)
-            print(f" 🎟️  Unconnected Workshop Credit: ${remaining_budget:.2f} available ({timer_info['formatted']})")
-            if state.get("project_id"):
-                print(f" 🏗️  Prepared Workshop Project  : {state['project_id']}")
-                print(" 👉 To switch Antigravity to your $5.00 workshop credit, complete Step 4")
-                print("    (run `tokenmaxx --step4` or ask me \"Show Step 4 to connect my project\").")
-            else:
-                print(" 👉 Have a GDG workshop credit? Ask me: \"Help me set up my GDG credits\"")
+            print(f" 🏗️  Prepared Workshop Project : {state['project_id']}")
+            print(" 👉 To connect Antigravity to your workshop project, complete Step 4")
+            print("    (run `tokenmaxx --step4` or ask \"Connect my workshop project\").")
+        else:
+            print(" 👉 Have a GDG workshop credit? Ask me: \"Help me set up my GDG credits\"")
         if model_quotas:
             print("-" * 66)
             print(" 📊 LIVE MODEL QUOTA RADAR:")
