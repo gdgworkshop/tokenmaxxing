@@ -111,7 +111,10 @@ trigger: always_on
      `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py`
      and display the full TokenMaxx Receipt + Coaching Alert.
 2. **Plan-Aware Output & Cadence Behavior:**
-   - **On Google AI Pro / Ultra Mode (`isGcpTos: false`):** NEVER display automatic token or dollar expenditure receipts during normal chat! Personal turns are unlimited. Only surface an alert if the active model quota drops below `< 20%` or an active background GDP credit is expiring (unless the user explicitly asks to check their credit/usage).
+   - **On Google AI Pro / Ultra Mode (`isGcpTos: false`) & Free Tier:**
+     - NEVER display automatic token or dollar expenditure receipts during normal chat! Personal turns are unlimited (or non-billable).
+     - **Active Utilities:** Model Quota Radar (< 20% lockout guard), Official Google Agent Skills, Smart Workspace Marketplace Recommendations, Zero-Key Gemini SDK setup, and 1-Prompt Cloud Run Deployments remain FULLY ACTIVE!
+     - When the user asks about usage, display their Plan status, Model Quota Radar, and Skills/Marketplace Hub.
    - **On GDP Credit Mode (`Agent Platform` / `isGcpTos: true`):**
      - **Every 5 Prompts (Prompt #1, #5, #10, #15...):** Run `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --pulse` and append the compact **2-line TokenMaxx Status Bar** (+ Coaching Alert if on Argon or `< 2h` left) at the bottom of your response.
      - **Milestone Checkpoints (`50%`, `70%`, `90%` budget used or `< 2h` remaining):** Automatically display the **Full TokenMaxx Receipt + Coaching Alert** so the user is never surprised.
@@ -163,7 +166,7 @@ if [ "${DO_NOT_TRACK}" != "1" ]; then
     CLIENT_ID=$(python3 -c "import hashlib, os, sys; uname = os.environ.get('USER', os.environ.get('USERNAME', 'anon')); print(hashlib.sha256((uname + sys.platform).encode()).hexdigest()[:16])" 2>/dev/null || whoami 2>/dev/null || echo "anon_user")
     (curl -s -X POST "https://www.google-analytics.com/mp/collect?api_secret=Q2mXTuXQTUuhIgYQtF-vwg&measurement_id=G-J90GTZJF9E" \
           -H "Content-Type: application/json" \
-          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.11\"}}]}" \
+          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.12\"}}]}" \
           --max-time 1 >/dev/null 2>&1 &) || true
 fi
 

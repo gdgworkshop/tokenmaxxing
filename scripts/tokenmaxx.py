@@ -36,7 +36,7 @@ from datetime import datetime, timedelta, timezone
 DEFAULT_BUDGET = 5.00
 CREDIT_LIFESPAN_HOURS = 12
 
-CURRENT_VERSION = "1.0.11"
+CURRENT_VERSION = "1.0.12"
 GITHUB_REPO = os.environ.get("TOKENMAXX_REPO", "saadgh/tokenmaxxing")
 VERSION_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/VERSION"
 RAW_REPO_BASE = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main"
@@ -1298,6 +1298,38 @@ def run_tokenmaxx(args):
             for alert in low_quota_alerts:
                 print(f"    • {alert}")
             print("    Tip: Switch to an alternate model (e.g. Gemini 3.8 Flash) to avoid throttling.")
+
+        # Skills & Marketplace Hub for Pro Users
+        print("-" * 66)
+        installed_list = get_installed_google_skills()
+        opp = detect_workspace_skills_opportunity(installed_list)
+        opp_text = ""
+        if opp:
+            opp_text = f" • 💡 {opp.get('message', '')} `{opp.get('cli_fallback', '')}`"
+            if opp.get("plugin_id"):
+                opp_text += f"\n   Marketplace Card: <plugin-card catalog-id=\"{opp['plugin_id']}\"></plugin-card>"
+
+        if skills_used:
+            print(" 🧩 OFFICIAL GOOGLE AGENT SKILLS IMPACT (ROI):")
+            used_str = ", ".join(f"{s} ({c}x)" for s, c in sorted(skills_used.items()))
+            print(f" • Active Skills Applied   : {used_str}")
+            print(f" • Debugging Tokens Saved  : ~{tokens_saved:,} tokens (~{max(1, tokens_saved // 12000)} turns saved!)")
+            if installed_list:
+                disp_installed = ", ".join(installed_list[:5]) + ("..." if len(installed_list) > 5 else "")
+                print(f" • Installed Skills Base   : {disp_installed}")
+            if opp_text:
+                print(opp_text)
+        else:
+            print(" 🧩 OFFICIAL GOOGLE AGENT SKILLS & MARKETPLACE:")
+            if installed_list:
+                disp_installed = ", ".join(installed_list[:5]) + ("..." if len(installed_list) > 5 else "")
+                print(f" • Installed Skills Base   : {disp_installed}")
+            if opp_text:
+                print(opp_text)
+            print(" • Curated Google Marketplace Plugins:")
+            print("   - 🔥 AI & Gemini   : <plugin-card catalog-id=\"antigravity-plugins-official/plugin/gemini-api\"></plugin-card>")
+            print("   - ☁️ Google Cloud  : <plugin-card catalog-id=\"antigravity-plugins-official/plugin/google-cloud-developer\"></plugin-card>")
+            print("   - ⚡ App Backend   : <plugin-card catalog-id=\"antigravity-plugins-official/plugin/firebase\"></plugin-card>")
         print("=" * 66)
         return
 
@@ -1328,6 +1360,13 @@ def run_tokenmaxx(args):
                 pct = "0%" if rem is None else f"{rem*100:.0f}%"
                 rst = q.get("reset_time") or "N/A"
                 print(f" • {q.get('label', 'Model'):<26}: {pct} remaining (resets: {rst})")
+
+        print("-" * 66)
+        print(" 🧩 OFFICIAL GOOGLE AGENT SKILLS & MARKETPLACE:")
+        print(" Supercharge your Antigravity project with 1-click Google plugins:")
+        print(" • 🔥 AI & Gemini   : <plugin-card catalog-id=\"antigravity-plugins-official/plugin/gemini-api\"></plugin-card>")
+        print(" • ☁️ Google Cloud  : <plugin-card catalog-id=\"antigravity-plugins-official/plugin/google-cloud-developer\"></plugin-card>")
+        print(" • ⚡ App Backend   : <plugin-card catalog-id=\"antigravity-plugins-official/plugin/firebase\"></plugin-card>")
         print("=" * 66)
         return
 
