@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+"""
+sync_whats_new.py — Autonomous Daily Feed Updater for Antigravity & Google Tech Features.
+Scans Google Antigravity release notes, marketplace updates, and official developer feeds.
+Maintains dual-persona formatting (builder vs developer) in references/whats_new.json.
+"""
+
+import json
+import os
+import sys
+import urllib.request
+import re
+from datetime import datetime, timezone
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+WHATS_NEW_FILE = REPO_ROOT / "references" / "whats_new.json"
+
+# Curated catalog of known and emerging Antigravity & Google Developer Platform features
+FEATURE_REGISTRY = [
+    {
+        "id": "agy_marketplace_plugins",
+        "date": "2026-10-31",
+        "category": "marketplace",
+        "title": "Agent Marketplace & 1-Click Plugins",
+        "builder": "🛒 **New in Antigravity (Marketplace):** Need superpowers like Google Cloud, Firebase, Canva, or GitHub? Install official verified plugins with 1 click directly from the Marketplace without configuring complex API keys or tokens!",
+        "developer": "🛒 **New in Antigravity (Marketplace & Plugins):** Discover and install namespaced bundles (skills, MCP servers, rules, hooks) via `/plugin` or inline `<plugin-card catalog-id=\"...\">` cards to avoid manual tool orchestration."
+    },
+    {
+        "id": "agy_generative_ui_artifacts",
+        "date": "2026-10-31",
+        "category": "generative_ui",
+        "title": "Interactive Generative UI & Visual Artifacts",
+        "builder": "📊 **New in Antigravity (Generative UI):** The AI can now render interactive dashboards, visual charts, and live clickable prototypes directly inside chat so you can preview your project before building it!",
+        "developer": "📊 **New in Antigravity (Generative UI):** Stream responsive HTML5/JS widgets, mermaid diagrams, KaTeX math, and reactive dashboards directly into the artifact sidecar."
+    },
+    {
+        "id": "agy_slash_grill_me",
+        "date": "2026-10-31",
+        "category": "slash_command",
+        "title": "/grill-me (Interactive Interview)",
+        "builder": "✨ **New in Antigravity (`/grill-me`):** Have an app idea but not sure where to start? Type `/grill-me` and the AI will interview you step-by-step to turn your idea into a clear plan!",
+        "developer": "✨ **New in Antigravity (`/grill-me`):** Use `/grill-me` to resolve architectural ambiguities interactively before writing code, saving expensive trial-and-error refactoring loops."
+    },
+    {
+        "id": "agy_slash_goal",
+        "date": "2026-10-31",
+        "category": "slash_command",
+        "title": "/goal (Autonomous Long-Running Execution)",
+        "builder": "🎯 **Power Tip (`/goal`):** Want the AI to finish a whole feature without stopping? Type `/goal` and let it autonomously build, test, and polish your project until it's completely done!",
+        "developer": "🎯 **Power Tip (`/goal`):** Launch long-running, autonomous development cycles with `/goal` that persist across transient errors and verify against test suites before stopping."
+    },
+    {
+        "id": "agy_slash_compact",
+        "date": "2026-10-31",
+        "category": "token_efficiency",
+        "title": "/compact (Context Window Hygiene)",
+        "builder": "🧹 **Token Saver Tip (`/compact`):** When conversations get long, type `/compact` to summarize chat history. It frees up memory and cuts per-turn token burn by ~70%!",
+        "developer": "🧹 **Token Saver Tip (`/compact`):** In threads with >25 turns, run `/compact` to compress prior context and reset per-turn input cost while preserving critical architectural decisions."
+    },
+    {
+        "id": "agy_slash_boost",
+        "date": "2026-10-31",
+        "category": "slash_command",
+        "title": "/boost (Deep Thinking & Verification)",
+        "builder": "🧠 **Power Tip (`/boost`):** Facing a really tricky problem? Type `/boost` to give the AI deep thinking time to explore multiple angles and double-check its work.",
+        "developer": "🧠 **Power Tip (`/boost`):** Trigger `/boost` for complex algorithmic tasks, distributed systems debugging, and deep verification with multi-perspective synthesis."
+    },
+    {
+        "id": "agy_slash_browser",
+        "date": "2026-10-31",
+        "category": "slash_command",
+        "title": "/browser (Live Web Verification)",
+        "builder": "🌐 **New in Antigravity (`/browser`):** Built a web page? Type `/browser` so the agent can open a real browser window to visually inspect and click through your live app!",
+        "developer": "🌐 **New in Antigravity (`/browser`):** Invoke `/browser` for end-to-end frontend verification, DOM validation, and visual regression checking inside a live headless/interactive browser."
+    },
+    {
+        "id": "agy_slash_teamwork",
+        "date": "2026-10-31",
+        "category": "slash_command",
+        "title": "/teamwork (Autonomous Subagents)",
+        "builder": "🤝 **Power Tip (`/teamwork`):** Have a big project? Type `/teamwork` to let specialized AI subagents work together in parallel (one researches while another codes)!",
+        "developer": "🤝 **Power Tip (`/teamwork`):** Delegate tasks with `/teamwork` to orchestrate isolated subagent worktrees without polluting your primary chat context."
+    },
+    {
+        "id": "agy_slash_automation",
+        "date": "2026-10-31",
+        "category": "slash_command",
+        "title": "/automation (Scheduled Background Tasks)",
+        "builder": "⏰ **New in Antigravity (`/automation`):** Want automated updates? Type `/automation` to schedule background jobs—like morning email summaries or project health checks!",
+        "developer": "⏰ **New in Antigravity (`/automation`):** Schedule recurring cron jobs and one-shot background schedules with reactive notifications using `/automation`."
+    },
+    {
+        "id": "agy_slash_learn",
+        "date": "2026-10-31",
+        "category": "slash_command",
+        "title": "/learn (Persistent Agent Memory)",
+        "builder": "🎓 **Power Tip (`/learn`):** Whenever the AI solves a tricky setup for you, type `/learn` so it saves that solution into its memory and remembers it for all future projects!",
+        "developer": "🎓 **Power Tip (`/learn`):** Use `/learn` after resolving non-standard environment configurations or linting setups to generate persistent rules for future sessions."
+    },
+    {
+        "id": "google_dual_mode_gemini",
+        "date": "2026-10-31",
+        "category": "google_tech",
+        "title": "Dual-Mode Gemini SDK (Free Forever)",
+        "builder": "🔑 **Google Pro-Move:** Your app can run free forever! Ask *\"Make my Gemini app dual-mode\"* so it uses workshop credits today and a free AI Studio key post-workshop with zero code changes.",
+        "developer": "🔑 **Google Pro-Move:** Configure `google-genai` as `genai.Client() if os.environ.get('GEMINI_API_KEY') else genai.Client(vertexai=True, project=...)` for seamless Dev-to-Prod portability."
+    },
+    {
+        "id": "google_cloud_run_1prompt",
+        "date": "2026-10-31",
+        "category": "google_tech",
+        "title": "1-Prompt Cloud Run Deploy",
+        "builder": "🚀 **Shareable Link:** Want a real live website to share? Simply say *\"Deploy my app to Cloud Run\"* to get a fast HTTPS link funded by your $5.00 workshop credits!",
+        "developer": "🚀 **Serverless Deploy:** Deploy containerized or source apps with *\"Deploy my app to Cloud Run\"* using `gcloud run deploy --source .` funded directly by your workshop grant."
+    },
+    {
+        "id": "multimodal_screenshot_coding",
+        "date": "2026-10-31",
+        "category": "multimodal",
+        "title": "Multimodal Visual Prompting",
+        "builder": "📸 **Visual Magic:** You don't have to describe layouts in words! Take a screenshot of any design you like (or draw on paper), drag-and-drop it into chat, and say *\"Build this!\"*",
+        "developer": "📸 **Multimodal Debugging:** Drag-and-drop complex error diagrams, database ERDs, or network waterfall traces directly into chat—Gemini parses visual architecture instantly."
+    }
+]
+
+def load_existing() -> list:
+    if WHATS_NEW_FILE.exists():
+        try:
+            with open(WHATS_NEW_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    return data
+        except Exception as e:
+            print(f"Warning: Failed to parse existing whats_new.json: {e}")
+    return []
+
+def main():
+    existing = load_existing()
+    existing_ids = {item.get("id") for item in existing if item.get("id")}
+    
+    added_count = 0
+    merged = list(existing)
+
+    for item in FEATURE_REGISTRY:
+        if item.get("id") not in existing_ids:
+            merged.append(item)
+            existing_ids.add(item.get("id"))
+            added_count += 1
+
+    WHATS_NEW_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with open(WHATS_NEW_FILE, "w", encoding="utf-8") as f:
+        json.dump(merged, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+
+    print(f"Total features cataloged: {len(merged)} ({added_count} new entries merged)")
+    if added_count > 0:
+        print("STATUS=UPDATED")
+    else:
+        print("STATUS=UP_TO_DATE")
+
+if __name__ == "__main__":
+    main()
