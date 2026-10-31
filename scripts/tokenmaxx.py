@@ -36,7 +36,7 @@ from datetime import datetime, timedelta, timezone
 DEFAULT_BUDGET = 5.00
 CREDIT_LIFESPAN_HOURS = 12
 
-CURRENT_VERSION = "1.0.15"
+CURRENT_VERSION = "1.0.16"
 GITHUB_REPO = os.environ.get("TOKENMAXX_REPO", "gdgworkshop/tokenmaxxing")
 VERSION_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/VERSION"
 RAW_REPO_BASE = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main"
@@ -1788,6 +1788,29 @@ def run_step4():
             completed_params["onboarding_seconds"] = onboarding_seconds
         record_telemetry_event("setup_completed", completed_params)
 
+    harness = detect_harness()
+
+    if harness in ("claude_code", "cursor", "vscode"):
+        h_name = "Claude Code" if harness == "claude_code" else ("Cursor" if harness == "cursor" else "VS Code / External Agent")
+        print(f"### 🔄 Step 4 of 4: Connect {h_name} to Your Workshop Project")
+        print(f"📋 **Your Project ID (`{project_id}`) is copied to your clipboard!**\n")
+        print("To let your agent authenticate to Google Cloud Vertex AI using your $5.00 workshop credits, run:")
+        print("```bash")
+        print(f"gcloud auth application-default login")
+        print(f"gcloud config set project {project_id}")
+        print("```\n")
+        print("And export the zero-key Vertex AI variables (or add to your shell profile):")
+        print("```bash")
+        print("export GOOGLE_GENAI_USE_VERTEXAI=true")
+        print(f"export GOOGLE_CLOUD_PROJECT=\"{project_id}\"")
+        print("export GOOGLE_CLOUD_LOCATION=\"global\"")
+        print("```\n")
+        print("---")
+        print("### 🎯 Final Step — Test Your Live Dashboard!")
+        print("In your chat, type:")
+        print("👉 **`How much credit and tokens do I have left?`**")
+        return
+
     print("### 🔄 Step 4 of 4: Connect Antigravity to Your Workshop Project")
     print(f"📋 **Your Project ID (`{project_id}`) is copied to your clipboard!**")
     print("⚠️ *Tip: Keep this instructions list visible (or take a quick photo/screenshot) because clicking **Sign Out** below will briefly close this chat window while you sign back in.*\n")
@@ -1803,6 +1826,7 @@ def run_step4():
     print("4. In Antigravity, select **\"Pay As You Go\"** *(draws 100% from your $5.00 workshop voucher—your personal card is never charged)*.")
     print(f"5. Paste your Project ID: **`{project_id}`** *(already on your clipboard!)*. Keep Region as **Global** (default) and click **Next**.")
     print("6. Close Settings (`✕`), then click **`+ New Conversation`**!\n")
+    print("*(💡 Note: If running Claude Code or Cursor alongside Antigravity, authenticate via: `gcloud auth application-default login && gcloud config set project " + project_id + "`)*\n")
     print("---")
     print("### 🎯 Final Step — Check Your Live $5.00 Credit & Token Dashboard!")
     print("Once you open **`+ New Conversation`**, type this as your very first message in the new chat:")

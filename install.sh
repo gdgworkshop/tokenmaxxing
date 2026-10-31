@@ -122,6 +122,18 @@ trigger: always_on
    - **Post-Expiration Account Switch:** When a 12-hour GDP credit expires, display a final summary and guide the user to sign out and sign back in with their personal Google account (Pro or Free tier).
 3. **Strict 1-Step-at-a-Time Workshop Credit Onboarding:**
    - When helping a user set up workshop/cloud credits, NEVER dump all 4 steps at once and NEVER output `<YOUR_PROJECT_ID>`. Run `tokenmaxx.py --step1`, `--step2`, `--step3 <PROJECT_ID>`, and `--step4` one step per turn, stopping and waiting for the user's reply after each step.
+   - **Adaptive Guidance & Persona Tracking (💻 Dev vs. 👷 Builder):** In Step 1, if the attendee's role is not yet saved in `state.json` and not explicitly mentioned in the prompt:
+     - **In Antigravity:** Call the `ask_question` tool so the user sees native 1-click buttons and doesn't need to type anything:
+       - Question: `"How would you like me to tailor code guidance for you today?"`
+       - Options:
+         - `"(Recommended) 💻 Professional Developer / Engineer (concise diffs & architecture patterns)"`
+         - `"👷 Non-Traditional Builder (designer, marketer, founder, student — intuitive visual explanations)"`
+     - **In Other Harnesses (Claude Code, Cursor, Codex):** Present a 1-character quick-reply option:
+       `"Reply '1' for 💻 Professional Developer or '2' for 👷 Non-Traditional Builder (or paste your credit link)."`
+     When selected or detected from the prompt, run:
+     `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --persona <developer|builder>`
+     - **💻 Professional Developer:** Provide concise architecture diffs, idiomatic patterns, and direct commands.
+     - **👷 Non-Traditional Builder:** Provide intuitive conceptual explanations, visual analogies, and zero unnecessary terminal jargon.
    - **CRITICAL:** If `--step1` was run without a credit URL and the user replies by pasting a credit link (e.g. `https://g.dev/credits/...` or `https://me.developers.google.com/...`), you MUST run `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step1 "<USER_CREDIT_URL>"` to open their credit link in the browser first, and wait for them to reply `"claimed"` before running `--step2`!
 4. **Pre-Execution Heavy Token Guard:** If an operation involves reading massive un-indexed repositories, unconstrained subagent recursions, or heavy multimodal files that could consume >50,000 tokens, warn the user with a Token Burn Alert before executing.
 5. **Official Google Agent Skills & Marketplace Gateway:**
@@ -161,6 +173,38 @@ setup_shell_rc() {
 setup_shell_rc "${HOME}/.zshrc"
 setup_shell_rc "${HOME}/.bashrc"
 
+# Multi-Harness Rules Bridge (Claude Code, Cursor, Copilot)
+# Ensures non-Antigravity agents automatically discover TokenMaxxing instructions
+if [ -d "${HOME}/.claude" ]; then
+    if [ ! -f "${HOME}/.claude/CLAUDE.md" ] || ! grep -q "tokenmaxxing" "${HOME}/.claude/CLAUDE.md" 2>/dev/null; then
+        echo -e "\n# TokenMaxxing — GDG Workshop Co-Pilot\nWhen user asks for workshop setup, credits, or tokens, run: python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py" >> "${HOME}/.claude/CLAUDE.md"
+        echo -e "   Configured global Claude Code bridge in ${BOLD}~/.claude/CLAUDE.md${RESET}"
+    fi
+fi
+
+if [ -d ".git" ]; then
+    if [ ! -f "CLAUDE.md" ] || ! grep -q "tokenmaxxing" "CLAUDE.md" 2>/dev/null; then
+        echo -e "\n# TokenMaxxing — GDG Workshop Co-Pilot\nWhen user asks for workshop setup, credits, or tokens, run: python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py" >> "CLAUDE.md"
+        echo -e "   Configured project Claude Code rules in ${BOLD}CLAUDE.md${RESET}"
+    fi
+
+    mkdir -p ".cursor/rules" 2>/dev/null || true
+    cat << 'EOF_CURSOR' > ".cursor/rules/tokenmaxxing.mdc"
+---
+description: TokenMaxxing GDG Workshop & Economic Co-Pilot
+globs: *
+alwaysApply: true
+---
+When the user asks about workshop credits, tokens, budget, or Cloud Run deployment, run:
+python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py
+EOF_CURSOR
+
+    mkdir -p ".github" 2>/dev/null || true
+    if [ ! -f ".github/copilot-instructions.md" ] || ! grep -q "tokenmaxxing" ".github/copilot-instructions.md" 2>/dev/null; then
+        echo -e "\n# TokenMaxxing — GDG Workshop Co-Pilot\nWhen user asks for workshop setup, credits, or tokens, run: python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py" >> ".github/copilot-instructions.md"
+    fi
+fi
+
 # Anonymous Telemetry Ping (F21) - Non-blocking, respects DO_NOT_TRACK
 if [ "${DO_NOT_TRACK}" != "1" ]; then
     CLIENT_ID=$(python3 -c "import hashlib, os, sys; uname = os.environ.get('USER', os.environ.get('USERNAME', 'anon')); print(hashlib.sha256((uname + sys.platform).encode()).hexdigest()[:16])" 2>/dev/null || whoami 2>/dev/null || echo "anon_user")
@@ -180,7 +224,7 @@ if [ "${DO_NOT_TRACK}" != "1" ]; then
 
     (curl -s -X POST "https://www.google-analytics.com/mp/collect?api_secret=Q2mXTuXQTUuhIgYQtF-vwg&measurement_id=G-J90GTZJF9E" \
           -H "Content-Type: application/json" \
-          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.15\",\"harness\":\"${HARNESS}\"}},{\"name\":\"harness_${HARNESS}\",\"params\":{\"platform\":\"$(uname)\"}}]}" \
+          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.16\",\"harness\":\"${HARNESS}\"}},{\"name\":\"harness_${HARNESS}\",\"params\":{\"platform\":\"$(uname)\"}}]}" \
           --max-time 1 >/dev/null 2>&1 &) || true
 fi
 
@@ -189,7 +233,7 @@ echo -e "${GREEN}${BOLD}🎉 Installation Complete!${RESET}"
 echo -e "   Skill installed to: ${CYAN}${SKILL_DIR}${RESET}"
 echo ""
 echo -e "${BOLD}Next Steps:${RESET}"
-echo -e " 1. ${BOLD}In Antigravity chat:${RESET} Simply say:"
+echo -e " 1. ${BOLD}In your AI chat (Antigravity, Claude Code, Cursor):${RESET} Simply say:"
 echo -e "    ${CYAN}\"Help me set up my GDG workshop credits\"${RESET}"
 echo -e "    The agent will guide you through claiming your \$5 credit and pre-enabling the API!"
 echo ""
