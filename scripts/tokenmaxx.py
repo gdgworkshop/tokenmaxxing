@@ -696,9 +696,10 @@ def get_geo_timezone() -> str:
 def set_persona(role: str):
     """
     Saves user role (developer vs non-traditional builder) and adapts guidance mode.
+    Supports names, letters ('a'/'b'), or digits ('1'/'2') for non-Antigravity harnesses.
     """
     clean = (role or "").strip().lower()
-    if any(k in clean for k in ["builder", "non-traditional", "creative", "designer", "marketer", "founder", "student", "teacher"]):
+    if clean in ("2", "b") or any(k in clean for k in ["builder", "non-traditional", "creative", "designer", "marketer", "founder", "student", "teacher"]):
         norm_role = "non_traditional_builder"
         display = "👷 Non-Traditional Builder"
         guidance = "Guidance Mode: Conceptual, visual explanations with zero unnecessary terminal jargon."
@@ -1606,10 +1607,18 @@ def run_step1(raw_claim_url: str = ""):
     env = detect_antigravity_environment()
 
     clean_input = (raw_claim_url or "").strip()
-    # Guard: Never treat the TokenMaxxing installer URL itself or confirmation words as an event credit claim URL!
-    if any(k in clean_input.lower() for k in INSTALLER_URL_MARKERS):
+    clean_lower = clean_input.lower()
+
+    # Allow 1-keystroke persona selection from any non-Antigravity harness (1=dev, 2=builder)
+    if clean_lower in {"1", "2", "a", "b", "builder", "developer", "dev"}:
+        set_persona(clean_input)
         clean_input = ""
-    if clean_input.lower() in {"claimed", "done", "yes", "ok", "next", "skip"}:
+        clean_lower = ""
+
+    # Guard: Never treat the TokenMaxxing installer URL itself or confirmation words as an event credit claim URL!
+    if any(k in clean_lower for k in INSTALLER_URL_MARKERS):
+        clean_input = ""
+    if clean_lower in {"claimed", "done", "yes", "ok", "next", "skip"}:
         # If the agent accidentally passed "claimed" to --step1 instead of calling --step2, redirect seamlessly to Step 2!
         run_step2()
         return
