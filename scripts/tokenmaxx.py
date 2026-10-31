@@ -1233,7 +1233,7 @@ def load_whats_new(force: bool = False) -> list:
                 if resp.status == 200:
                     data = resp.read().decode("utf-8")
                     remote_tips = json.loads(data)
-                    if remote_tips and isinstance(remote_tips, list):
+                    if remote_tips and isinstance(remote_tips, list) and len(remote_tips) >= len(tips):
                         tips = remote_tips
                         local_path.parent.mkdir(parents=True, exist_ok=True)
                         with open(local_path, "w", encoding="utf-8") as f:
