@@ -1,11 +1,35 @@
 [
   {
+    "id": "agy_marketplace_plugins",
+    "date": "2026-10-31",
+    "category": "marketplace",
+    "title": "Agent Marketplace & 1-Click Plugins",
+    "builder": "🛒 **New in Antigravity (Marketplace):** Need superpowers like Google Cloud, Firebase, Canva, or GitHub? Install official verified plugins with 1 click directly from the Marketplace without configuring complex API keys or tokens!",
+    "developer": "🛒 **New in Antigravity (Marketplace & Plugins):** Discover and install namespaced bundles (skills, MCP servers, rules, hooks) via `/plugin` or inline `<plugin-card catalog-id=\"...\">` cards to avoid manual tool orchestration."
+  },
+  {
+    "id": "agy_generative_ui_artifacts",
+    "date": "2026-10-31",
+    "category": "generative_ui",
+    "title": "Interactive Generative UI & Visual Artifacts",
+    "builder": "📊 **New in Antigravity (Generative UI):** The AI can now render interactive dashboards, visual charts, and live clickable prototypes directly inside chat so you can preview your project before building it!",
+    "developer": "📊 **New in Antigravity (Generative UI):** Stream responsive HTML5/JS widgets, mermaid diagrams, KaTeX math, and reactive dashboards directly into the artifact sidecar."
+  },
+  {
     "id": "agy_slash_grill_me",
     "date": "2026-10-31",
     "category": "slash_command",
     "title": "/grill-me (Interactive Interview)",
     "builder": "✨ **New in Antigravity (`/grill-me`):** Have an app idea but not sure where to start? Type `/grill-me` and the AI will interview you step-by-step to turn your idea into a clear plan!",
     "developer": "✨ **New in Antigravity (`/grill-me`):** Use `/grill-me` to resolve architectural ambiguities interactively before writing code, saving expensive trial-and-error refactoring loops."
+  },
+  {
+    "id": "agy_slash_goal",
+    "date": "2026-10-31",
+    "category": "slash_command",
+    "title": "/goal (Autonomous Long-Running Execution)",
+    "builder": "🎯 **Power Tip (`/goal`):** Want the AI to finish a whole feature without stopping? Type `/goal` and let it autonomously build, test, and polish your project until it's completely done!",
+    "developer": "🎯 **Power Tip (`/goal`):** Launch long-running, autonomous development cycles with `/goal` that persist across transient errors and verify against test suites before stopping."
   },
   {
     "id": "agy_slash_compact",
@@ -24,6 +48,14 @@
     "developer": "🧠 **Power Tip (`/boost`):** Trigger `/boost` for complex algorithmic tasks, distributed systems debugging, and deep verification with multi-perspective synthesis."
   },
   {
+    "id": "agy_slash_browser",
+    "date": "2026-10-31",
+    "category": "slash_command",
+    "title": "/browser (Live Web Verification)",
+    "builder": "🌐 **New in Antigravity (`/browser`):** Built a web page? Type `/browser` so the agent can open a real browser window to visually inspect and click through your live app!",
+    "developer": "🌐 **New in Antigravity (`/browser`):** Invoke `/browser` for end-to-end frontend verification, DOM validation, and visual regression checking inside a live headless/interactive browser."
+  },
+  {
     "id": "agy_slash_teamwork",
     "date": "2026-10-31",
     "category": "slash_command",
@@ -32,12 +64,12 @@
     "developer": "🤝 **Power Tip (`/teamwork`):** Delegate tasks with `/teamwork` to orchestrate isolated subagent worktrees without polluting your primary chat context."
   },
   {
-    "id": "agy_slash_browser",
+    "id": "agy_slash_automation",
     "date": "2026-10-31",
     "category": "slash_command",
-    "title": "/browser (Live Web Verification)",
-    "builder": "🌐 **New in Antigravity (`/browser`):** Built a web page? Type `/browser` so the agent can open a real browser window to visually inspect and click through your live app!",
-    "developer": "🌐 **New in Antigravity (`/browser`):** Invoke `/browser` for end-to-end frontend verification, DOM validation, and visual regression checking inside a live headless/interactive browser."
+    "title": "/automation (Scheduled Background Tasks)",
+    "builder": "⏰ **New in Antigravity (`/automation`):** Want automated updates? Type `/automation` to schedule background jobs—like morning email summaries or project health checks!",
+    "developer": "⏰ **New in Antigravity (`/automation`):** Schedule recurring cron jobs and one-shot background schedules with reactive notifications using `/automation`."
   },
   {
     "id": "agy_slash_learn",
