@@ -239,6 +239,44 @@
       color: #e2e8f0;
     }
 
+    .persona-selector {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .persona-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-right: 4px;
+    }
+
+    .persona-pill {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .persona-pill:hover {
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .persona-pill.active {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+      font-weight: 600;
+    }
+
     /* Grid of Features / Problems Solved */
     .section-title {
       font-family: 'Google Sans', sans-serif;
@@ -474,7 +512,14 @@
     <div class="action-card">
       <div class="card-label">
         <span>⚡ Quick Start in Antigravity</span>
-        <span>Version 1.0.10</span>
+        <span>Version 1.0.15</span>
+      </div>
+
+      <div class="persona-selector">
+        <span class="persona-label">Tailor prompt:</span>
+        <button type="button" class="persona-pill active" id="pill-all" onclick="selectPersona('all')">✨ Standard</button>
+        <button type="button" class="persona-pill" id="pill-dev" onclick="selectPersona('developer')">💻 Developer</button>
+        <button type="button" class="persona-pill" id="pill-builder" onclick="selectPersona('builder')">👷 Builder</button>
       </div>
 
       <div class="prompt-box">
@@ -612,6 +657,30 @@
   </div>
 
   <script>
+    function selectPersona(role) {
+      document.querySelectorAll('.persona-pill').forEach(el => el.classList.remove('active'));
+      const promptEl = document.getElementById('primary-prompt');
+      let promptText = "Help me setup my credits. Follow instructions at https://g.dev/ai/workshop";
+      
+      if (role === 'developer') {
+        const devPill = document.getElementById('pill-dev');
+        if (devPill) devPill.classList.add('active');
+        promptText = "Help me setup my credits as a developer. Follow instructions at https://g.dev/ai/workshop";
+      } else if (role === 'builder') {
+        const builderPill = document.getElementById('pill-builder');
+        if (builderPill) builderPill.classList.add('active');
+        promptText = "Help me setup my credits as a builder. Follow instructions at https://g.dev/ai/workshop";
+      } else {
+        const allPill = document.getElementById('pill-all');
+        if (allPill) allPill.classList.add('active');
+      }
+      
+      promptEl.innerText = promptText;
+      if (typeof gtag === 'function') {
+        gtag('event', 'persona_selected', { 'role': role });
+      }
+    }
+
     function copyPrompt(elementId, buttonId) {
       const text = document.getElementById(elementId).innerText;
       if (typeof gtag === 'function') {

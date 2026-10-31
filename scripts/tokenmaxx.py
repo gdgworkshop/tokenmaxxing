@@ -36,7 +36,7 @@ from datetime import datetime, timedelta, timezone
 DEFAULT_BUDGET = 5.00
 CREDIT_LIFESPAN_HOURS = 12
 
-CURRENT_VERSION = "1.0.14"
+CURRENT_VERSION = "1.0.15"
 GITHUB_REPO = os.environ.get("TOKENMAXX_REPO", "gdgworkshop/tokenmaxxing")
 VERSION_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/VERSION"
 RAW_REPO_BASE = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main"
@@ -655,6 +655,65 @@ def evaluate_model_advisor(current_model: str, hours_left: float, remaining_budg
 GA4_MEASUREMENT_ID = os.environ.get("TOKENMAXX_GA4_ID", "G-J90GTZJF9E")
 GA4_API_SECRET = os.environ.get("TOKENMAXX_GA4_SECRET", "Q2mXTuXQTUuhIgYQtF-vwg")
 
+def detect_harness() -> str:
+    """
+    Passively detects the agent harness or developer environment
+    (Antigravity, Claude Code, Cursor, VS Code, Codex, or Terminal)
+    without interrupting the developer.
+    """
+    if os.environ.get("ANTIGRAVITY_SHELL") or os.environ.get("GEMINI_CLI") or Path.home().joinpath(".gemini/antigravity").exists():
+        return "antigravity"
+    if os.environ.get("CLAUDE_CODE_ENTRYPOINT") or "claude" in os.environ.get("_", "").lower():
+        return "claude_code"
+    term = os.environ.get("TERM_PROGRAM", "").lower()
+    if term == "cursor":
+        return "cursor"
+    if term == "vscode":
+        return "vscode"
+    if term:
+        return term
+    return "terminal"
+
+def get_geo_timezone() -> str:
+    """
+    Resolves system IANA timezone (e.g. Asia/Karachi, America/New_York)
+    for passive city/regional cluster analysis without network calls.
+    """
+    try:
+        if os.path.exists("/etc/localtime") and os.path.islink("/etc/localtime"):
+            target = os.path.realpath("/etc/localtime")
+            parts = target.split("/zoneinfo/")
+            if len(parts) > 1:
+                return parts[1]
+    except Exception:
+        pass
+    try:
+        import time
+        return time.tzname[0] if hasattr(time, "tzname") and time.tzname else "+0000"
+    except Exception:
+        return "+0000"
+
+def set_persona(role: str):
+    """
+    Saves user role (developer vs non-traditional builder) and adapts guidance mode.
+    """
+    clean = (role or "").strip().lower()
+    if any(k in clean for k in ["builder", "non-traditional", "creative", "designer", "marketer", "founder", "student", "teacher"]):
+        norm_role = "non_traditional_builder"
+        display = "👷 Non-Traditional Builder"
+        guidance = "Guidance Mode: Conceptual, visual explanations with zero unnecessary terminal jargon."
+    else:
+        norm_role = "professional_developer"
+        display = "💻 Professional Developer"
+        guidance = "Guidance Mode: Concise architecture diffs, idiomatic patterns, and direct commands."
+
+    state = load_state()
+    state["persona"] = norm_role
+    save_state(state)
+    record_telemetry_event("persona_selected", {"role": norm_role})
+    print(f"✅ Persona set to **{display}**.")
+    print(f"💡 {guidance}")
+
 def record_telemetry_event(event_name: str, params: dict = None, extra_events: list = None):
     if os.environ.get("DO_NOT_TRACK") == "1":
         return
@@ -667,22 +726,33 @@ def record_telemetry_event(event_name: str, params: dict = None, extra_events: l
         client_id = hashlib.sha256((uname + sys.platform).encode()).hexdigest()[:16]
         url = f"https://www.google-analytics.com/mp/collect?api_secret={GA4_API_SECRET}&measurement_id={GA4_MEASUREMENT_ID}"
 
-        try:
-            local_tz = time.strftime("%z")
-        except Exception:
-            local_tz = "+0000"
+        local_tz = get_geo_timezone()
+        harness = detect_harness()
 
         event_params = {
             "platform": sys.platform,
             "version": CURRENT_VERSION,
-            "tz": local_tz
+            "tz": local_tz,
+            "harness": harness
         }
+
+        try:
+            st = load_state()
+            if st.get("persona"):
+                event_params["persona"] = st["persona"]
+        except Exception:
+            pass
+
         if params:
             event_params.update(params)
 
         events_payload = [{"name": event_name, "params": event_params}]
 
         # Top-level event derivations for immediate GA4 standard report visibility:
+        events_payload.append({"name": f"harness_{harness}", "params": event_params})
+        if "persona" in event_params:
+            events_payload.append({"name": f"persona_{event_params['persona']}", "params": event_params})
+
         if event_name == "skill_installed" and "skill" in event_params:
             s_name = re.sub(r"[^a-zA-Z0-9_]", "_", str(event_params["skill"]))
             events_payload.append({"name": f"skill_installed_{s_name}", "params": event_params})
@@ -1576,6 +1646,13 @@ def run_step1(raw_claim_url: str = ""):
         print("1. **Guided Credit Setup:** Walks you through activating your **$5.00 Google Cloud workshop credit** one step at a time.")
         print("2. **Live Budget & Token Tracker:** Shows your remaining **$5.00 balance, token usage, and 12-hour timer** every 5 prompts (or anytime you ask *\"How much credit or tokens do I have left?\"*).\n")
 
+        curr_state = load_state()
+        if not curr_state.get("persona"):
+            print("🎯 **Tailor Your Workshop Experience:**")
+            print("To customize code guidance for you today, are you coming from:")
+            print(" • 💻 **Professional Developer / Engineer** *(concise diffs, architecture patterns)*")
+            print(" • 👷 **Non-Traditional Builder** *(designer, marketer, founder, student — intuitive conceptual explanations)*\n")
+
         if env["needs_update"]:
             print(f"⚠️ **Important Version Check (Antigravity v{env['version_str']} detected):**")
             print("Before we reach Step 4, please make sure you update Antigravity to **v2.26.0+** (**Antigravity → Check for Updates** or download from `https://antigravity.google`) so the **\"Use Business Account\"** sign-in option is available.\n")
@@ -1874,6 +1951,7 @@ def main():
     parser.add_argument("--claimed-at", type=str, help="Calibrate credit claim time (ISO or HH:MM)")
     parser.add_argument("--install-skill", type=str, help="1-click install official Google skill from github.com/google/skills")
     parser.add_argument("--setup", action="store_true", help="Launch interactive GDG credit setup wizard")
+    parser.add_argument("--persona", "--set-persona", type=str, default=None, help="Set builder persona: developer or builder")
     parser.add_argument("--step1", nargs="?", const="", default=None, help="Run onboarding Step 1 (Claim Credit & Version Check)")
     parser.add_argument("--step2", action="store_true", help="Run onboarding Step 2 (Open Project Creation)")
     parser.add_argument("--step3", type=str, default=None, help="Run onboarding Step 3 (Open API Enablement for Project ID)")
@@ -1905,6 +1983,10 @@ def main():
 
     # Non-blocking daily background check
     check_for_updates(force=False)
+
+    if args.persona:
+        set_persona(args.persona)
+        return
 
     if args.step1 is not None:
         run_step1(args.step1)

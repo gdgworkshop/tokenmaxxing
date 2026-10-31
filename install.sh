@@ -164,9 +164,23 @@ setup_shell_rc "${HOME}/.bashrc"
 # Anonymous Telemetry Ping (F21) - Non-blocking, respects DO_NOT_TRACK
 if [ "${DO_NOT_TRACK}" != "1" ]; then
     CLIENT_ID=$(python3 -c "import hashlib, os, sys; uname = os.environ.get('USER', os.environ.get('USERNAME', 'anon')); print(hashlib.sha256((uname + sys.platform).encode()).hexdigest()[:16])" 2>/dev/null || whoami 2>/dev/null || echo "anon_user")
+
+    HARNESS="terminal"
+    if [ -d "${HOME}/.gemini/antigravity" ] || [ -n "${ANTIGRAVITY_SHELL:-}" ] || [ -n "${GEMINI_CLI:-}" ]; then
+        HARNESS="antigravity"
+    elif [ -n "${CLAUDE_CODE_ENTRYPOINT:-}" ] || echo "$_" | grep -qi "claude"; then
+        HARNESS="claude_code"
+    elif [ "${TERM_PROGRAM:-}" = "cursor" ]; then
+        HARNESS="cursor"
+    elif [ "${TERM_PROGRAM:-}" = "vscode" ]; then
+        HARNESS="vscode"
+    elif [ -n "${TERM_PROGRAM:-}" ]; then
+        HARNESS="${TERM_PROGRAM}"
+    fi
+
     (curl -s -X POST "https://www.google-analytics.com/mp/collect?api_secret=Q2mXTuXQTUuhIgYQtF-vwg&measurement_id=G-J90GTZJF9E" \
           -H "Content-Type: application/json" \
-          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.14\"}}]}" \
+          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.15\",\"harness\":\"${HARNESS}\"}},{\"name\":\"harness_${HARNESS}\",\"params\":{\"platform\":\"$(uname)\"}}]}" \
           --max-time 1 >/dev/null 2>&1 &) || true
 fi
 
