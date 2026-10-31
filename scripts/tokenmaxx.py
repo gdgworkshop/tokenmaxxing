@@ -661,8 +661,7 @@ def detect_harness() -> str:
     (Antigravity, Claude Code, Cursor, VS Code, Codex, or Terminal)
     without interrupting the developer.
     """
-    if os.environ.get("ANTIGRAVITY_SHELL") or os.environ.get("GEMINI_CLI") or Path.home().joinpath(".gemini/antigravity").exists():
-        return "antigravity"
+    # 1. Specific active CLI / editor runtime indicators
     if os.environ.get("CLAUDE_CODE_ENTRYPOINT") or "claude" in os.environ.get("_", "").lower():
         return "claude_code"
     term = os.environ.get("TERM_PROGRAM", "").lower()
@@ -670,6 +669,13 @@ def detect_harness() -> str:
         return "cursor"
     if term == "vscode":
         return "vscode"
+
+    # 2. Antigravity active session or installed directory
+    if os.environ.get("ANTIGRAVITY_SHELL") or os.environ.get("GEMINI_CLI"):
+        return "antigravity"
+    if Path.home().joinpath(".gemini/antigravity").exists():
+        return "antigravity"
+
     if term:
         return term
     return "terminal"
