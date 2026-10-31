@@ -1649,9 +1649,10 @@ def run_step1(raw_claim_url: str = ""):
         curr_state = load_state()
         if not curr_state.get("persona"):
             print("🎯 **Tailor Your Workshop Experience:**")
-            print("To customize code guidance for you today, are you coming from:")
+            print("To customize code guidance for you today, choose your role:")
             print(" • 💻 **Professional Developer / Engineer** *(concise diffs, architecture patterns)*")
             print(" • 👷 **Non-Traditional Builder** *(designer, marketer, founder, student — intuitive conceptual explanations)*\n")
+            print("*(💡 You can click the choice button or paste your credit link below!)*\n")
 
         if env["needs_update"]:
             print(f"⚠️ **Important Version Check (Antigravity v{env['version_str']} detected):**")
