@@ -36,7 +36,7 @@ from datetime import datetime, timedelta, timezone
 DEFAULT_BUDGET = 5.00
 CREDIT_LIFESPAN_HOURS = 12
 
-CURRENT_VERSION = "1.0.16"
+CURRENT_VERSION = "1.0.17"
 GITHUB_REPO = os.environ.get("TOKENMAXX_REPO", "gdgworkshop/tokenmaxxing")
 VERSION_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/VERSION"
 RAW_REPO_BASE = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main"
@@ -1656,10 +1656,12 @@ def run_step1(raw_claim_url: str = ""):
         save_state(state)
 
     if not (clean_input and was_awaiting_url):
-        print("⚡ **Welcome to TokenMaxxing — Your Workshop Credit & Token Co-Pilot!**")
-        print("This plugin does two things for you:")
-        print("1. **Guided Credit Setup:** Walks you through activating your **$5.00 Google Cloud workshop credit** one step at a time.")
-        print("2. **Live Budget & Token Tracker:** Shows your remaining **$5.00 balance, token usage, and 12-hour timer** every 5 prompts (or anytime you ask *\"How much credit or tokens do I have left?\"*).\n")
+        print("⚡ **Welcome to TokenMaxxing — Your GDG Workshop & Economic Co-Pilot!**")
+        print("I'm here to superpower your entire workshop journey from setup to live deployment:\n")
+        print("🎟️ **90-Second Credit Setup:** Guided 3-step activation with pre-enabled Vertex AI (0% crash rate).")
+        print("⛽ **Real-Time Gas Gauge & Timer:** Live token pricing, 12h expiration countdown, and model efficiency pacing.")
+        print("🔑 **Zero-Key Gemini SDK:** Build GenAI apps with your $5.00 grant without managing or leaking API keys.")
+        print("🚀 **Official Skills & 1-Prompt Deploy:** Verified Google blueprints (Firebase, Flutter, Gemini) + 1-prompt Cloud Run deploy.\n")
 
         curr_state = load_state()
         if not curr_state.get("persona"):
