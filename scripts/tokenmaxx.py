@@ -36,7 +36,7 @@ from datetime import datetime, timedelta, timezone
 DEFAULT_BUDGET = 5.00
 CREDIT_LIFESPAN_HOURS = 12
 
-CURRENT_VERSION = "1.0.18"
+CURRENT_VERSION = "1.0.19"
 GITHUB_REPO = os.environ.get("TOKENMAXX_REPO", "gdgworkshop/tokenmaxxing")
 VERSION_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/VERSION"
 RAW_REPO_BASE = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main"
@@ -851,17 +851,21 @@ def normalize_claim_url(user_input: str) -> tuple:
 
     return raw, suggested_event, direct_portal
 
-def open_browser_url(url: str):
-    """Cross-platform browser deep-link opener"""
+def open_browser_url(url: str, background: bool = False):
+    """Cross-platform browser deep-link opener (supports non-focus-stealing background mode)"""
     if os.environ.get("TOKENMAXX_NO_BROWSER") == "1":
         return True
     try:
         if sys.platform == "darwin":
-            subprocess.Popen(["open", url])
+            cmd = ["open", "-g", url] if background else ["open", url]
+            subprocess.Popen(cmd)
         elif sys.platform.startswith("linux"):
-            subprocess.Popen(["xdg-open", url])
+            subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         elif sys.platform == "win32":
-            subprocess.Popen(["start", url], shell=True)
+            if background:
+                subprocess.Popen(["cmd", "/c", "start", "/min", "", url])
+            else:
+                subprocess.Popen(["start", url], shell=True)
         return True
     except Exception:
         return False
@@ -1803,12 +1807,14 @@ def run_step1(raw_claim_url: str = ""):
         save_state(state)
 
     if not (clean_input and was_awaiting_url):
+        open_browser_url("https://g.dev/ai/workshop", background=True)
         print("⚡ **Welcome to TokenMaxxing — Your GDG Workshop & Economic Co-Pilot!**")
         print("I'm here to superpower your entire workshop journey from setup to live deployment:\n")
         print("🎟️ **90-Second Credit Setup:** Guided 3-step activation with pre-enabled Vertex AI (0% crash rate).")
         print("⛽ **Real-Time Gas Gauge & Timer:** Live token pricing, 12h expiration countdown, and model efficiency pacing.")
         print("🔑 **Zero-Key Gemini SDK:** Build GenAI apps with your $5.00 grant without managing or leaking API keys.")
-        print("🚀 **Official Skills & 1-Prompt Deploy:** Verified Google blueprints (Firebase, Flutter, Gemini) + 1-prompt Cloud Run deploy.\n")
+        print("🚀 **Official Skills & 1-Prompt Deploy:** Verified Google blueprints (Firebase, Flutter, Gemini) + 1-prompt Cloud Run deploy.")
+        print("🌐 **Web Companion Hub:** Opened **[g.dev/ai/workshop](https://g.dev/ai/workshop)** in your browser background for 1-click prompt recipes & cheat sheets.\n")
 
         curr_state = load_state()
         if not curr_state.get("persona"):
