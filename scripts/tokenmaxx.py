@@ -1227,7 +1227,7 @@ def load_whats_new(force: bool = False) -> list:
     last_fetch = state.get("last_whats_new_fetch", 0)
     if (force or (now_ts - last_fetch > 43200)) and GITHUB_REPO:
         try:
-            url = f"{RAW_REPO_BASE}/references/whats_new.json"
+            url = f"{RAW_REPO_BASE}/references/whats_new.json?t={int(now_ts)}"
             req = urllib.request.Request(url, headers={"User-Agent": "Antigravity-TokenMaxx"})
             with urllib.request.urlopen(req, timeout=1.2) as resp:
                 if resp.status == 200:
