@@ -1,0 +1,74 @@
+[
+  {
+    "id": "agy_slash_grill_me",
+    "date": "2026-10-31",
+    "category": "slash_command",
+    "title": "/grill-me (Interactive Interview)",
+    "builder": "✨ **New in Antigravity (`/grill-me`):** Have an app idea but not sure where to start? Type `/grill-me` and the AI will interview you step-by-step to turn your idea into a clear plan!",
+    "developer": "✨ **New in Antigravity (`/grill-me`):** Use `/grill-me` to resolve architectural ambiguities interactively before writing code, saving expensive trial-and-error refactoring loops."
+  },
+  {
+    "id": "agy_slash_compact",
+    "date": "2026-10-31",
+    "category": "token_efficiency",
+    "title": "/compact (Context Window Hygiene)",
+    "builder": "🧹 **Token Saver Tip (`/compact`):** When conversations get long, type `/compact` to summarize chat history. It frees up memory and cuts per-turn token burn by ~70%!",
+    "developer": "🧹 **Token Saver Tip (`/compact`):** In threads with >25 turns, run `/compact` to compress prior context and reset per-turn input cost while preserving critical architectural decisions."
+  },
+  {
+    "id": "agy_slash_boost",
+    "date": "2026-10-31",
+    "category": "slash_command",
+    "title": "/boost (Deep Thinking & Verification)",
+    "builder": "🧠 **Power Tip (`/boost`):** Facing a really tricky problem? Type `/boost` to give the AI deep thinking time to explore multiple angles and double-check its work.",
+    "developer": "🧠 **Power Tip (`/boost`):** Trigger `/boost` for complex algorithmic tasks, distributed systems debugging, and deep verification with multi-perspective synthesis."
+  },
+  {
+    "id": "agy_slash_teamwork",
+    "date": "2026-10-31",
+    "category": "slash_command",
+    "title": "/teamwork (Autonomous Subagents)",
+    "builder": "🤝 **Power Tip (`/teamwork`):** Have a big project? Type `/teamwork` to let specialized AI subagents work together in parallel (one researches while another codes)!",
+    "developer": "🤝 **Power Tip (`/teamwork`):** Delegate tasks with `/teamwork` to orchestrate isolated subagent worktrees without polluting your primary chat context."
+  },
+  {
+    "id": "agy_slash_browser",
+    "date": "2026-10-31",
+    "category": "slash_command",
+    "title": "/browser (Live Web Verification)",
+    "builder": "🌐 **New in Antigravity (`/browser`):** Built a web page? Type `/browser` so the agent can open a real browser window to visually inspect and click through your live app!",
+    "developer": "🌐 **New in Antigravity (`/browser`):** Invoke `/browser` for end-to-end frontend verification, DOM validation, and visual regression checking inside a live headless/interactive browser."
+  },
+  {
+    "id": "agy_slash_learn",
+    "date": "2026-10-31",
+    "category": "slash_command",
+    "title": "/learn (Persistent Agent Memory)",
+    "builder": "🎓 **Power Tip (`/learn`):** Whenever the AI solves a tricky setup for you, type `/learn` so it saves that solution into its memory and remembers it for all future projects!",
+    "developer": "🎓 **Power Tip (`/learn`):** Use `/learn` after resolving non-standard environment configurations or linting setups to generate persistent rules for future sessions."
+  },
+  {
+    "id": "google_dual_mode_gemini",
+    "date": "2026-10-31",
+    "category": "google_tech",
+    "title": "Dual-Mode Gemini SDK (Free Forever)",
+    "builder": "🔑 **Google Pro-Move:** Your app can run free forever! Ask *\"Make my Gemini app dual-mode\"* so it uses workshop credits today and a free AI Studio key post-workshop with zero code changes.",
+    "developer": "🔑 **Google Pro-Move:** Configure `google-genai` as `genai.Client() if os.environ.get('GEMINI_API_KEY') else genai.Client(vertexai=True, project=...)` for seamless Dev-to-Prod portability."
+  },
+  {
+    "id": "google_cloud_run_1prompt",
+    "date": "2026-10-31",
+    "category": "google_tech",
+    "title": "1-Prompt Cloud Run Deploy",
+    "builder": "🚀 **Shareable Link:** Want a real live website to share? Simply say *\"Deploy my app to Cloud Run\"* to get a fast HTTPS link funded by your $5.00 workshop credits!",
+    "developer": "🚀 **Serverless Deploy:** Deploy containerized or source apps with *\"Deploy my app to Cloud Run\"* using `gcloud run deploy --source .` funded directly by your workshop grant."
+  },
+  {
+    "id": "multimodal_screenshot_coding",
+    "date": "2026-10-31",
+    "category": "multimodal",
+    "title": "Multimodal Visual Prompting",
+    "builder": "📸 **Visual Magic:** You don't have to describe layouts in words! Take a screenshot of any design you like (or draw on paper), drag-and-drop it into chat, and say *\"Build this!\"*",
+    "developer": "📸 **Multimodal Debugging:** Drag-and-drop complex error diagrams, database ERDs, or network waterfall traces directly into chat—Gemini parses visual architecture instantly."
+  }
+]

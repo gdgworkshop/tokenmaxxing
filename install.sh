@@ -86,11 +86,13 @@ if [ -f "./SKILL.md" ] && [ -f "./scripts/tokenmaxx.py" ]; then
     cp "./SKILL.md" "${SKILL_DIR}/SKILL.md"
     cp "./scripts/tokenmaxx.py" "${SCRIPTS_DIR}/tokenmaxx.py"
     [ -f "./references/pricing_matrix.md" ] && cp "./references/pricing_matrix.md" "${REFS_DIR}/pricing_matrix.md"
+    [ -f "./references/whats_new.json" ] && cp "./references/whats_new.json" "${REFS_DIR}/whats_new.json"
 else
     echo -e "🌐 Downloading latest release from GitHub..."
     curl -fsSL "${BASE_URL}/SKILL.md" -o "${SKILL_DIR}/SKILL.md"
     curl -fsSL "${BASE_URL}/scripts/tokenmaxx.py" -o "${SCRIPTS_DIR}/tokenmaxx.py"
     curl -fsSL "${BASE_URL}/references/pricing_matrix.md" -o "${REFS_DIR}/pricing_matrix.md" 2>/dev/null || true
+    curl -fsSL "${BASE_URL}/references/whats_new.json" -o "${REFS_DIR}/whats_new.json" 2>/dev/null || true
 fi
 
 chmod +x "${SCRIPTS_DIR}/tokenmaxx.py"
@@ -149,6 +151,20 @@ trigger: always_on
    - Whenever you read or apply an official Google Agent Skill (from `~/.gemini/config/skills/<skill_name>/SKILL.md`, e.g. `gemini-api`, `firebase-basics`, `firebase-firestore`, `flutter-...`, etc.), append this single-line badge at the bottom of your turn output:
      `🧩 **Skill Active (<skill_name>):** Applied official Google blueprint — avoided API hallucination & saved ~35,000 debugging tokens (~3 turns)!`
    - If the user asks how skills help them or asks for skill ROI, explain that official skills provide exact API signatures, eliminate trial-and-error compile/run cycles, and prevent repetitive hallucinated code generation.
+8. **Dynamic Antigravity Feature Education & Slash-Command Coaching:**
+   - **On-Demand Tips:** Whenever the user asks *"What's new in Antigravity?"*, *"Any Antigravity tips?"*, *"Show features"*, or asks about power tools, execute:
+     `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --whats-new`
+     and present the persona-tailored overview.
+   - **Contextual In-Flight Nudges:**
+     - When brainstorming vague app ideas, proactively recommend `/grill-me` (interactive interview) or `/plan`.
+     - When hitting complex bugs or multi-module logic, recommend `/boost`.
+     - When testing live web frontends, recommend `/browser`.
+     - When resolving non-standard environment or setup issues, recommend `/learn`.
+9. **Context Window Hygiene Coach & Dual-Mode Gemini SDK:**
+   - **Context Hygiene:** When a conversation approaches >25 turns or user mentions sluggishness, append a 1-line prompt advising `/compact` or starting a fresh conversation to reset per-turn token burn.
+   - **Dual-Mode Gemini SDK (Free Forever Bridge):** When writing code that calls the `google-genai` SDK, configure dual-mode initialization:
+     `client = genai.Client() if os.environ.get("GEMINI_API_KEY") else genai.Client(vertexai=True, project="<project_id>", location="global")`
+     so the attendee's code runs with their workshop credits today and transitions smoothly to a free AI Studio key post-workshop with zero code changes.
 EOF
 
 # Setup shell aliases for easy terminal access
@@ -224,7 +240,7 @@ if [ "${DO_NOT_TRACK}" != "1" ]; then
 
     (curl -s -X POST "https://www.google-analytics.com/mp/collect?api_secret=Q2mXTuXQTUuhIgYQtF-vwg&measurement_id=G-J90GTZJF9E" \
           -H "Content-Type: application/json" \
-          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.17\",\"harness\":\"${HARNESS}\"}},{\"name\":\"harness_${HARNESS}\",\"params\":{\"platform\":\"$(uname)\"}}]}" \
+          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.18\",\"harness\":\"${HARNESS}\"}},{\"name\":\"harness_${HARNESS}\",\"params\":{\"platform\":\"$(uname)\"}}]}" \
           --max-time 1 >/dev/null 2>&1 &) || true
 fi
 

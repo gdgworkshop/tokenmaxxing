@@ -36,7 +36,7 @@ from datetime import datetime, timedelta, timezone
 DEFAULT_BUDGET = 5.00
 CREDIT_LIFESPAN_HOURS = 12
 
-CURRENT_VERSION = "1.0.17"
+CURRENT_VERSION = "1.0.18"
 GITHUB_REPO = os.environ.get("TOKENMAXX_REPO", "gdgworkshop/tokenmaxxing")
 VERSION_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/VERSION"
 RAW_REPO_BASE = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main"
@@ -1168,7 +1168,8 @@ def check_for_updates(force=False):
             files_to_update = {
                 "SKILL.md": SKILLS_DIR / "SKILL.md",
                 "scripts/tokenmaxx.py": SKILLS_DIR / "scripts" / "tokenmaxx.py",
-                "references/pricing_matrix.md": SKILLS_DIR / "references" / "pricing_matrix.md"
+                "references/pricing_matrix.md": SKILLS_DIR / "references" / "pricing_matrix.md",
+                "references/whats_new.json": SKILLS_DIR / "references" / "whats_new.json"
             }
             for rel_path, dest_path in files_to_update.items():
                 file_url = f"{RAW_REPO_BASE}/{rel_path}"
@@ -1195,6 +1196,135 @@ def check_for_updates(force=False):
         if force:
             print(f"⚠️  Could not check for updates: {e}")
     return False
+
+# ---------------------------------------------------------------------------
+# Dynamic Antigravity Knowledge & Context Hygiene Coach (F25)
+# ---------------------------------------------------------------------------
+
+def load_whats_new(force: bool = False) -> list:
+    """
+    Loads latest Antigravity features and tips from local cache or fetches updates from GitHub.
+    """
+    local_path = SKILLS_DIR / "references" / "whats_new.json"
+    bundled_path = Path(__file__).parent.parent / "references" / "whats_new.json"
+
+    tips = []
+    if local_path.exists():
+        try:
+            with open(local_path, "r", encoding="utf-8") as f:
+                tips = json.load(f)
+        except Exception:
+            pass
+    elif bundled_path.exists():
+        try:
+            with open(bundled_path, "r", encoding="utf-8") as f:
+                tips = json.load(f)
+        except Exception:
+            pass
+
+    now_ts = time.time()
+    state = load_state()
+    last_fetch = state.get("last_whats_new_fetch", 0)
+    if (force or (now_ts - last_fetch > 43200)) and GITHUB_REPO:
+        try:
+            url = f"{RAW_REPO_BASE}/references/whats_new.json"
+            req = urllib.request.Request(url, headers={"User-Agent": "Antigravity-TokenMaxx"})
+            with urllib.request.urlopen(req, timeout=1.2) as resp:
+                if resp.status == 200:
+                    data = resp.read().decode("utf-8")
+                    remote_tips = json.loads(data)
+                    if remote_tips and isinstance(remote_tips, list):
+                        tips = remote_tips
+                        local_path.parent.mkdir(parents=True, exist_ok=True)
+                        with open(local_path, "w", encoding="utf-8") as f:
+                            f.write(data)
+                        state["last_whats_new_fetch"] = now_ts
+                        save_state(state)
+        except Exception:
+            pass
+    return tips
+
+def get_next_unseen_tip(state: dict) -> str:
+    """
+    Returns the next unseen Antigravity/Google pro-tip tailored for the user's persona.
+    Marks tip as seen in state['seen_tips'] to prevent repetition.
+    """
+    tips = load_whats_new()
+    if not tips:
+        return ""
+
+    persona = state.get("persona", "professional_developer")
+    is_builder = (persona == "non_traditional_builder")
+
+    seen = state.get("seen_tips", [])
+    unseen = [t for t in tips if t.get("id") and t.get("id") not in seen]
+
+    if not unseen:
+        # Reset cycle if all seen
+        seen = []
+        unseen = tips
+
+    chosen = unseen[0]
+    tip_id = chosen.get("id")
+    if tip_id:
+        seen.append(tip_id)
+        state["seen_tips"] = seen
+        save_state(state)
+
+    if is_builder:
+        return chosen.get("builder") or chosen.get("developer", "")
+    return chosen.get("developer") or chosen.get("builder", "")
+
+def display_whats_new():
+    """
+    Displays complete on-demand list of Antigravity capabilities and slash commands.
+    """
+    state = load_state()
+    persona = state.get("persona", "professional_developer")
+    is_builder = (persona == "non_traditional_builder")
+    tips = load_whats_new(force=True)
+
+    print("=" * 66)
+    print(" 🚀 WHAT'S NEW & POWERFUL IN GOOGLE ANTIGRAVITY")
+    print("=" * 66)
+    role_label = "👷 Non-Traditional Builder" if is_builder else "💻 Professional Developer"
+    print(f" Tailored for your persona: {role_label}")
+    print("-" * 66)
+    for idx, t in enumerate(tips, 1):
+        content = t.get("builder" if is_builder else "developer") or t.get("builder")
+        print(f" {idx}. {t.get('title', 'Feature')}:")
+        print(f"    {content}")
+        print("")
+    print("-" * 66)
+    print(" 💡 Tip: Type any slash command (like `/grill-me`, `/compact`, `/browser`)")
+    print("    directly into Antigravity chat to trigger these superpowers!")
+    print("=" * 66)
+
+def check_context_hygiene() -> str:
+    """
+    Checks if active thread is bloated (>25 turns or >80k tokens) and advises /compact.
+    """
+    try:
+        transcripts = sorted(BRAIN_DIR.glob("*/.system_generated/logs/transcript.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True)
+        if not transcripts:
+            return ""
+        steps = parse_transcript_tokens(transcripts[0])
+        if not steps:
+            return ""
+        last_step = steps[-1]
+        turn_count = len(steps)
+        input_tok = last_step.get("input_tokens", 0)
+
+        if turn_count >= 25 or input_tok >= 80000:
+            state = load_state()
+            is_builder = (state.get("persona") == "non_traditional_builder")
+            if is_builder:
+                return f"🧹 **Token Saver Tip:** This chat has reached {turn_count} turns (~{input_tok:,} tokens/turn). Type `/compact` or start a `+ New Conversation` to save ~70% tokens!"
+            else:
+                return f"🧹 **Context Hygiene Alert:** Thread at {turn_count} turns ({input_tok:,} tokens/turn). Run `/compact` to summarize history and reset per-turn input cost."
+    except Exception:
+        pass
+    return ""
 
 # ---------------------------------------------------------------------------
 # Main TokenMaxx Execution Flow
@@ -1318,6 +1448,9 @@ def run_tokenmaxx(args):
         usage["argon"]["input"] + usage["argon"]["cached"] + usage["argon"]["output"]
     )
 
+    hygiene_tip = check_context_hygiene()
+    unseen_tip = get_next_unseen_tip(state)
+
     # -----------------------------------------------------------------------
     # Output Rendering
     # -----------------------------------------------------------------------
@@ -1399,6 +1532,13 @@ def run_tokenmaxx(args):
             print("   - 🔥 AI & Gemini   : <plugin-card catalog-id=\"antigravity-plugins-official/plugin/gemini-api\"></plugin-card>")
             print("   - ☁️ Google Cloud  : <plugin-card catalog-id=\"antigravity-plugins-official/plugin/google-cloud-developer\"></plugin-card>")
             print("   - ⚡ App Backend   : <plugin-card catalog-id=\"antigravity-plugins-official/plugin/firebase\"></plugin-card>")
+        if hygiene_tip:
+            print("-" * 66)
+            print(f" {hygiene_tip}")
+        elif unseen_tip:
+            print("-" * 66)
+            print(" 💡 ANTIGRAVITY & GOOGLE POWER TIP:")
+            print(f"   {unseen_tip}")
         print("=" * 66)
         return
 
@@ -1434,6 +1574,13 @@ def run_tokenmaxx(args):
         print(" • 🔥 AI & Gemini   : <plugin-card catalog-id=\"antigravity-plugins-official/plugin/gemini-api\"></plugin-card>")
         print(" • ☁️ Google Cloud  : <plugin-card catalog-id=\"antigravity-plugins-official/plugin/google-cloud-developer\"></plugin-card>")
         print(" • ⚡ App Backend   : <plugin-card catalog-id=\"antigravity-plugins-official/plugin/firebase\"></plugin-card>")
+        if hygiene_tip:
+            print("-" * 66)
+            print(f" {hygiene_tip}")
+        elif unseen_tip:
+            print("-" * 66)
+            print(" 💡 ANTIGRAVITY & GOOGLE POWER TIP:")
+            print(f"   {unseen_tip}")
         print("=" * 66)
         return
 
@@ -1458,19 +1605,11 @@ def run_tokenmaxx(args):
         print(f"⚡ **TokenMaxx Pulse:** **${remaining_budget:.2f} / ${initial_budget:.2f} left ({pct_remaining:.1f}%)** • ⏱️ **{timer_info['formatted']}** • 💡 *~{turns_flash:,} Flash turns left (Ask `\"How much credit do I have left?\"` anytime)*")
         if advisor_alert:
             print(f"   {advisor_alert['title']}: {advisor_alert['message']}")
+        elif hygiene_tip:
+            print(f"   {hygiene_tip}")
+        elif unseen_tip:
+            print(f"   {unseen_tip}")
         return
-
-    # Rotating Gemini & Antigravity Pro-Moves
-    pro_moves = [
-        f"💡 **Zero-Key Gemini SDK:** Building an AI app today? Ask me to connect the `google-genai` SDK directly to your workshop project (`{project_id}`)—no API key needed!",
-        "💡 **Gemini Multimodal Superpower:** Drag-and-drop any UI screenshot or error image into chat—Gemini can see it and write the code immediately!",
-        "💡 **Context Caching Magic:** Notice `Context Cache Credit` above? Gemini automatically caches your codebase so follow-up prompts cost up to **75% less**!",
-        f"💡 **1-Prompt Cloud Run Deploy:** Ready to share your app? Ask *\"Deploy my app to Cloud Run\"* to get a live `https://...run.app` URL funded by your $5.00 credit!"
-    ]
-    tip_idx = state.get("pro_move_idx", 0) % len(pro_moves)
-    selected_pro_move = pro_moves[tip_idx]
-    state["pro_move_idx"] = tip_idx + 1
-    save_state(state)
 
     print("=" * 66)
     if crossed_milestone:
@@ -1483,6 +1622,14 @@ def run_tokenmaxx(args):
         print(f" 🏗️  Workshop Project : {state['project_id']} (Vertex AI Ready)")
     print(f" ⏳ Credit Lifespan  : {timer_info['formatted']}")
     print(f" 🎯 Current Model    : {usage['recent_model_used']}")
+    print("-" * 66)
+    if hygiene_tip:
+        print(f" {hygiene_tip}")
+        print("-" * 66)
+    elif unseen_tip:
+        print(" 💡 ANTIGRAVITY & GOOGLE POWER TIP:")
+        print(f"   {unseen_tip}")
+        print("-" * 66)
     print("-" * 66)
     print(" 🧾 PRODUCTION INVOICING RECONCILIATION (MATCHES CLOUD CONSOLE):")
     print(f" ├─ Gross Usage Cost    : ${usage['gross_usage']:.2f} (Uncached list rates)")
@@ -1993,6 +2140,7 @@ def main():
     parser.add_argument("--claimed-at", type=str, help="Calibrate credit claim time (ISO or HH:MM)")
     parser.add_argument("--install-skill", type=str, help="1-click install official Google skill from github.com/google/skills")
     parser.add_argument("--setup", action="store_true", help="Launch interactive GDG credit setup wizard")
+    parser.add_argument("--whats-new", "--tips", action="store_true", dest="whats_new", help="Display latest Antigravity capabilities, slash commands, and pro-tips")
     parser.add_argument("--persona", "--set-persona", type=str, default=None, help="Set builder persona: developer or builder")
     parser.add_argument("--step1", nargs="?", const="", default=None, help="Run onboarding Step 1 (Claim Credit & Version Check)")
     parser.add_argument("--step2", action="store_true", help="Run onboarding Step 2 (Open Project Creation)")
@@ -2028,6 +2176,10 @@ def main():
 
     if args.persona:
         set_persona(args.persona)
+        return
+
+    if args.whats_new:
+        display_whats_new()
         return
 
     if args.step1 is not None:
