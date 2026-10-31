@@ -77,7 +77,7 @@ RULES_DIR="${CONFIG_DIR}/rules"
 echo -e "📦 Creating installation directories..."
 mkdir -p "${SCRIPTS_DIR}" "${REFS_DIR}" "${RULES_DIR}"
 
-REPO_NAME="${TOKENMAXX_REPO:-saadgh/tokenmaxxing}"
+REPO_NAME="${TOKENMAXX_REPO:-gdgworkshop/tokenmaxxing}"
 BASE_URL="https://raw.githubusercontent.com/${REPO_NAME}/main"
 
 # Download files (or copy if run locally from git repo)
@@ -166,7 +166,7 @@ if [ "${DO_NOT_TRACK}" != "1" ]; then
     CLIENT_ID=$(python3 -c "import hashlib, os, sys; uname = os.environ.get('USER', os.environ.get('USERNAME', 'anon')); print(hashlib.sha256((uname + sys.platform).encode()).hexdigest()[:16])" 2>/dev/null || whoami 2>/dev/null || echo "anon_user")
     (curl -s -X POST "https://www.google-analytics.com/mp/collect?api_secret=Q2mXTuXQTUuhIgYQtF-vwg&measurement_id=G-J90GTZJF9E" \
           -H "Content-Type: application/json" \
-          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.13\"}}]}" \
+          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.14\"}}]}" \
           --max-time 1 >/dev/null 2>&1 &) || true
 fi
 

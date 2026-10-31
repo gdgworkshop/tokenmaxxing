@@ -18,7 +18,7 @@ curl -fsSL https://g.dev/events/tokenmaxxing | bash
 
 ### Option B: Natural Language In-Agent Install
 If you already have Antigravity open, simply type into the chat:
-> *"Install tokenmaxxing from github.com/saadgh/tokenmaxxing"*
+> *"Install tokenmaxxing from github.com/gdgworkshop/tokenmaxxing"*
 
 ---
 
