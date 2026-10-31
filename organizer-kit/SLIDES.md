@@ -13,16 +13,15 @@ It replaces the legacy 17-screenshot PDF guide and cuts attendee onboarding time
 |                                                                             |
 |      ⚡ WELCOME TO THE WORKSHOP: GET YOUR $5 CLOUD CREDITS                  |
 |                                                                             |
-|      Step 1: Open your Terminal and paste this one command:                 |
+|      Step 1: Open in browser: https://g.dev/ai/workshop                     |
+|              (or scan QR code for TokenMaxxing Companion)                   |
 |                                                                             |
-|      curl -fsSL https://g.dev/events/tokenmaxxing | bash |
-|                                                                             |
-|      [ █▀▀▀▀▀█  ▄▄ █  █▀▀▀▀▀█ ]    Scan QR Code for GitHub Repo:            |
-|      [ █ ███ █  █▄ ▄  █ ███ █ ]    github.com/saadgh/tokenmaxxing        |
+|      [ █▀▀▀▀▀█  ▄▄ █  █▀▀▀▀▀█ ]    GitHub Repository:                       |
+|      [ █ ███ █  █▄ ▄  █ ███ █ ]    github.com/gdgworkshop/tokenmaxxing      |
 |      [ █▀▀▀▀▀█  █▄█▄  █▀▀▀▀▀█ ]                                             |
 |                                                                             |
-|      Step 2: In Antigravity chat, type:                                     |
-|      "Help me set up my GDG credits"                                        |
+|      Step 2: Tap "Copy Prompt", paste in Antigravity chat:                  |
+|      "Help me set up my GDG workshop credits"                               |
 |                                                                             |
 +-----------------------------------------------------------------------------+
 ```

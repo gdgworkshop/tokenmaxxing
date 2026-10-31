@@ -9,16 +9,16 @@
 
 ## 🚀 Quickstart (Under 60 Seconds)
 
-### Option A: The One-Line Terminal Quick-Install (Recommended)
-Open your terminal and paste:
+### Option A: The Universal Web Companion (Recommended for Attendees)
+Open **[g.dev/ai/workshop](https://g.dev/ai/workshop)**, click **Copy Prompt**, and paste it into Antigravity chat:
+> *"Install tokenmaxxing from github.com/gdgworkshop/tokenmaxxing"*
+
+### Option B: The One-Line Terminal Quick-Install
+If you prefer running the setup in your terminal, run:
 
 ```bash
-curl -fsSL https://g.dev/events/tokenmaxxing | bash
+curl -fsSL https://raw.githubusercontent.com/gdgworkshop/tokenmaxxing/main/install.sh | bash
 ```
-
-### Option B: Natural Language In-Agent Install
-If you already have Antigravity open, simply type into the chat:
-> *"Install tokenmaxxing from github.com/gdgworkshop/tokenmaxxing"*
 
 ---
 
