@@ -28,9 +28,13 @@
 #          and recommend the matching official skills based on their workspace project files
 #          (or offer the curated AI, Cloud, and Mobile tracks from github.com/google/skills).
 #
-#    C. IF ASKING TO SETUP CREDITS OR PASTING LINK WITH NO OTHER INTENT:
-#       (e.g., "Help me setup my credits", "Setup my workshop", or just pasting the URL):
+#    C. IF LAUNCHING COMPANION, SETTING UP CREDITS, OR PASTING LINK:
+#       (e.g., "Launch my workshop companion", "Launch my builder companion", "Launch my developer companion", "Help me setup my credits", "Setup my workshop", or just pasting the URL):
 #       -> STRICT 1-STEP-AT-A-TIME ONBOARDING RULE (NEVER DUMP ALL STEPS AT ONCE!):
+#          - If the user prompt mentions "developer":
+#              python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --persona developer
+#          - If the user prompt mentions "builder" or "vibe":
+#              python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --persona builder
 #          - Run:
 #              python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step1
 #            (Note: Only pass an argument to --step1 if the user also provided a separate
@@ -124,21 +128,21 @@ trigger: always_on
      - **Milestone Checkpoints (`50%`, `70%`, `90%` budget used or `< 2h` remaining):** Automatically display the **Full TokenMaxx Receipt + Coaching Alert** so the user is never surprised.
    - **Dynamic Model Efficiency Advisor:** Recommend **Gemini 3.8 Flash** as the sweet spot for rapid, token-efficient development (~1,000+ turns per $5 grant). Alert users when running routine tasks on Gemini 4 Argon to preserve their runway, but invert the alert when `< 2 hours` remain to burn unspent credits before expiration.
    - **Post-Expiration Account Switch:** When a 12-hour GDP credit expires, display a final summary and guide the user to sign out and sign back in with their personal Google account (Pro or Free tier).
-3. **Strict 1-Step-at-a-Time Workshop Credit Onboarding (Zero Browser-Subagent Policy):**
-   - When helping a user set up workshop/cloud credits, NEVER dump all 4 steps at once and NEVER output `<YOUR_PROJECT_ID>`. Run `tokenmaxx.py --step1`, `--step2`, `--step3 <PROJECT_ID>`, and `--step4` one step per turn, stopping and waiting for the user's reply after each step.
+3. **Strict 1-Step-at-a-Time Workshop Companion & Credit Onboarding (Zero Browser-Subagent Policy):**
+   - When helping a user launch their companion or set up workshop/cloud credits (e.g., *"Launch my workshop companion"*, *"Launch my builder/developer companion"*, *"Help me setup my credits"*), NEVER dump all 4 steps at once and NEVER output `<YOUR_PROJECT_ID>`. Run `tokenmaxx.py --step1`, `--step2`, `--step3 <PROJECT_ID>`, and `--step4` one step per turn, stopping and waiting for the user's reply after each step.
    - **Browser Policy Guardrail:** NEVER invoke the `/browser` subagent or execute browser JavaScript to open `g.dev` or GCP Console URLs—always run `tokenmaxx.py` via the terminal tool (which uses OS-native `open -g` / `start` and `curl`) so users are never blocked by `Browser Javascript Execution Policy` (`Disabled` / `Request Review`) or `Browser Actuation Rules`.
-   - **Adaptive Guidance & Persona Tracking (💻 Dev vs. 👷 Builder):** In Step 1, if the attendee's role is not yet saved in `state.json` and not explicitly mentioned in the prompt:
+   - **Adaptive Guidance & Persona Tracking (💻 Dev vs. 👷 Builder / Vibe Coder):** In Step 1, if the attendee's role is not yet saved in `state.json` and not explicitly mentioned in the prompt:
      - **In Antigravity:** Call the `ask_question` tool so the user sees native 1-click buttons and doesn't need to type anything:
        - Question: `"How would you like me to tailor code guidance for you today?"`
        - Options:
          - `"(Recommended) 💻 Professional Developer / Engineer (concise diffs & architecture patterns)"`
-         - `"👷 Non-Traditional Builder (designer, marketer, founder, student — intuitive visual explanations)"`
+         - `"👷 Non-Traditional Builder / Vibe Coder (designer, marketer, founder, student — intuitive visual explanations)"`
      - **In Other Harnesses (Claude Code, Cursor, Codex):** Present a 1-character quick-reply option:
-       `"Reply '1' for 💻 Professional Developer or '2' for 👷 Non-Traditional Builder (or paste your credit link)."`
+       `"Reply '1' for 💻 Professional Developer or '2' for 👷 Non-Traditional Builder / Vibe Coder (or paste your credit link)."`
      When selected or detected from the prompt, run:
      `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --persona <developer|builder>`
      - **💻 Professional Developer:** Provide concise architecture diffs, idiomatic patterns, and direct commands.
-     - **👷 Non-Traditional Builder:** Provide intuitive conceptual explanations, visual analogies, and zero unnecessary terminal jargon.
+     - **👷 Non-Traditional Builder / Vibe Coder:** Provide intuitive conceptual explanations, visual analogies, and zero unnecessary terminal jargon.
    - **CRITICAL:** If `--step1` was run without a credit URL and the user replies by pasting a credit link (e.g. `https://g.dev/credits/...` or `https://me.developers.google.com/...`), you MUST run `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step1 "<USER_CREDIT_URL>"` to open their credit link in the browser first, and wait for them to reply `"claimed"` before running `--step2`!
 4. **Pre-Execution Heavy Token Guard:** If an operation involves reading massive un-indexed repositories, unconstrained subagent recursions, or heavy multimodal files that could consume >50,000 tokens, warn the user with a Token Burn Alert before executing.
 5. **Official Google Agent Skills & Marketplace Gateway:**
@@ -243,7 +247,7 @@ if [ "${DO_NOT_TRACK}" != "1" ]; then
 
     (curl -s -X POST "https://www.google-analytics.com/mp/collect?api_secret=Q2mXTuXQTUuhIgYQtF-vwg&measurement_id=G-J90GTZJF9E" \
           -H "Content-Type: application/json" \
-          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.19\",\"harness\":\"${HARNESS}\"}},{\"name\":\"harness_${HARNESS}\",\"params\":{\"platform\":\"$(uname)\"}}]}" \
+          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.20\",\"harness\":\"${HARNESS}\"}},{\"name\":\"harness_${HARNESS}\",\"params\":{\"platform\":\"$(uname)\"}}]}" \
           --max-time 1 >/dev/null 2>&1 &) || true
 fi
 

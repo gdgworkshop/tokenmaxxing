@@ -36,7 +36,7 @@ from datetime import datetime, timedelta, timezone
 DEFAULT_BUDGET = 5.00
 CREDIT_LIFESPAN_HOURS = 12
 
-CURRENT_VERSION = "1.0.19"
+CURRENT_VERSION = "1.0.20"
 GITHUB_REPO = os.environ.get("TOKENMAXX_REPO", "gdgworkshop/tokenmaxxing")
 VERSION_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/VERSION"
 RAW_REPO_BASE = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main"
@@ -1821,7 +1821,7 @@ def run_step1(raw_claim_url: str = ""):
             print("🎯 **Tailor Your Workshop Experience:**")
             print("To customize code guidance for you today, choose your role:")
             print(" • 💻 **Professional Developer / Engineer** *(concise diffs, architecture patterns)*")
-            print(" • 👷 **Non-Traditional Builder** *(designer, marketer, founder, student — intuitive conceptual explanations)*\n")
+            print(" • 👷 **Non-Traditional Builder / Vibe Coder** *(designer, marketer, founder, student — intuitive conceptual explanations)*\n")
             print("*(💡 You can click the choice button or paste your credit link below!)*\n")
 
         if env["needs_update"]:
