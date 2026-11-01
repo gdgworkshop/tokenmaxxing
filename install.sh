@@ -233,6 +233,10 @@ EOF_CURSOR
     if [ ! -f ".github/copilot-instructions.md" ] || ! grep -q "tokenmaxxing" ".github/copilot-instructions.md" 2>/dev/null; then
         echo -e "\n# TokenMaxxing — GDG Workshop Co-Pilot\nWhen user asks for workshop setup, credits, or tokens, run: python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py" >> ".github/copilot-instructions.md"
     fi
+
+    if [ ! -f "AGENTS.md" ] || ! grep -q "tokenmaxxing" "AGENTS.md" 2>/dev/null; then
+        echo -e "\n# TokenMaxxing — GDG Workshop Co-Pilot\nWhen user asks for workshop setup, credits, or tokens, run: python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py" >> "AGENTS.md"
+    fi
 fi
 
 # Anonymous Telemetry Ping (F21) - Non-blocking, respects DO_NOT_TRACK
@@ -240,21 +244,23 @@ if [ "${DO_NOT_TRACK}" != "1" ]; then
     CLIENT_ID=$(python3 -c "import hashlib, os, sys; uname = os.environ.get('USER', os.environ.get('USERNAME', 'anon')); print(hashlib.sha256((uname + sys.platform).encode()).hexdigest()[:16])" 2>/dev/null || whoami 2>/dev/null || echo "anon_user")
 
     HARNESS="terminal"
-    if [ -d "${HOME}/.gemini/antigravity" ] || [ -n "${ANTIGRAVITY_SHELL:-}" ] || [ -n "${GEMINI_CLI:-}" ]; then
-        HARNESS="antigravity"
+    if [ -n "${CODEX_SESSION:-}" ] || [ -n "${OPENAI_SESSION:-}" ] || [ -n "${CHATGPT_DESKTOP:-}" ] || echo "$_" | grep -qi "codex"; then
+        HARNESS="codex"
     elif [ -n "${CLAUDE_CODE_ENTRYPOINT:-}" ] || echo "$_" | grep -qi "claude"; then
         HARNESS="claude_code"
     elif [ "${TERM_PROGRAM:-}" = "cursor" ]; then
         HARNESS="cursor"
     elif [ "${TERM_PROGRAM:-}" = "vscode" ]; then
         HARNESS="vscode"
+    elif [ -d "${HOME}/.gemini/antigravity" ] || [ -n "${ANTIGRAVITY_SHELL:-}" ] || [ -n "${GEMINI_CLI:-}" ]; then
+        HARNESS="antigravity"
     elif [ -n "${TERM_PROGRAM:-}" ]; then
         HARNESS="${TERM_PROGRAM}"
     fi
 
     (curl -s -X POST "https://www.google-analytics.com/mp/collect?api_secret=Q2mXTuXQTUuhIgYQtF-vwg&measurement_id=G-J90GTZJF9E" \
           -H "Content-Type: application/json" \
-          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.22\",\"harness\":\"${HARNESS}\"}},{\"name\":\"harness_${HARNESS}\",\"params\":{\"platform\":\"$(uname)\"}}]}" \
+          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.23\",\"harness\":\"${HARNESS}\"}},{\"name\":\"harness_${HARNESS}\",\"params\":{\"platform\":\"$(uname)\"}}]}" \
           --max-time 1 >/dev/null 2>&1 &) || true
 fi
 

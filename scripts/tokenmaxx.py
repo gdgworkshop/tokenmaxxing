@@ -36,7 +36,7 @@ from datetime import datetime, timedelta, timezone
 DEFAULT_BUDGET = 5.00
 CREDIT_LIFESPAN_HOURS = 12
 
-CURRENT_VERSION = "1.0.22"
+CURRENT_VERSION = "1.0.23"
 GITHUB_REPO = os.environ.get("TOKENMAXX_REPO", "gdgworkshop/tokenmaxxing")
 VERSION_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/VERSION"
 RAW_REPO_BASE = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main"
@@ -662,6 +662,8 @@ def detect_harness() -> str:
     without interrupting the developer.
     """
     # 1. Specific active CLI / editor runtime indicators
+    if os.environ.get("CODEX_SESSION") or os.environ.get("OPENAI_SESSION") or "codex" in os.environ.get("_", "").lower() or os.environ.get("CHATGPT_DESKTOP"):
+        return "codex"
     if os.environ.get("CLAUDE_CODE_ENTRYPOINT") or "claude" in os.environ.get("_", "").lower():
         return "claude_code"
     term = os.environ.get("TERM_PROGRAM", "").lower()
@@ -669,6 +671,8 @@ def detect_harness() -> str:
         return "cursor"
     if term == "vscode":
         return "vscode"
+    if "codex" in term:
+        return "codex"
 
     # 2. Antigravity active session or installed directory
     if os.environ.get("ANTIGRAVITY_SHELL") or os.environ.get("GEMINI_CLI"):
@@ -1843,20 +1847,23 @@ def run_step1(raw_claim_url: str = ""):
     else:
         print("### 🎯 Let's Tailor Your Companion & Get Started!")
         print("Choose your role and how you'd like to begin using the interactive buttons below *(or paste your `https://g.dev/credits/...` link directly)*:")
+        print("*(In Codex, Claude Code, or Cursor: Reply **'1'** for 💻 Professional Developer or **'2'** for 👷 Builder / Vibe Coder)*")
         print("\n🛑 [AGENT DIRECTIVE — MANDATORY INTERACTIVE LAUNCHPAD:")
         print("1. Output the Welcome Banner above to the user.")
-        print("2. DO NOT assume the user's persona from their prompt text! You MUST ALWAYS confirm their persona and starting action in this turn by calling the `ask_question` tool with these EXACT 2 questions:")
-        print("   - Question 1: \"How would you like me to tailor coding guidance for you today?\"")
-        print("     Options:")
-        print("       • \"(Recommended) 💻 Professional Developer / Engineer (concise diffs & architecture patterns)\"")
-        print("       • \"👷 Non-Traditional Builder / Vibe Coder (intuitive visual explanations, zero terminal jargon)\"")
-        print("   - Question 2: \"How would you like to get started with your Workshop Companion?\"")
-        print("     Options:")
-        print("       • \"(Recommended) 🎟️ Setup my $5.00 Workshop Credit (or paste your credit link in 'Other' below)\"")
-        print("       • \"✅ I already claimed my credit — connect my Google Cloud Project (Step 2)\"")
-        print("       • \"🧭 Guide me through the plugin features (Gas Gauge, Official Skills & Vibe Coding Tips)\"")
-        print("       • \"🧩 Install Official Google Agent Skills for my project (Gemini, Firebase, Cloud Run, Flutter)\"")
-        print("3. WHEN THE USER ANSWERS THE INTERACTIVE WIDGET:")
+        print("2. DO NOT assume the user's persona from their prompt text! You MUST ALWAYS confirm their persona and starting action in this turn:")
+        print("   - IN ANTIGRAVITY: Call the `ask_question` tool with these EXACT 2 questions:")
+        print("       Question 1: \"How would you like me to tailor coding guidance for you today?\"")
+        print("         • \"(Recommended) 💻 Professional Developer / Engineer (concise diffs & architecture patterns)\"")
+        print("         • \"👷 Non-Traditional Builder / Vibe Coder (intuitive visual explanations, zero terminal jargon)\"")
+        print("       Question 2: \"How would you like to get started with your Workshop Companion?\"")
+        print("         • \"(Recommended) 🎟️ Setup my $5.00 Workshop Credit (or paste your credit link in 'Other' below)\"")
+        print("         • \"✅ I already claimed my credit — connect my Google Cloud Project (Step 2)\"")
+        print("         • \"🧭 Guide me through the plugin features (Gas Gauge, Official Skills & Vibe Coding Tips)\"")
+        print("         • \"🧩 Install Official Google Agent Skills for my project (Gemini, Firebase, Cloud Run, Flutter)\"")
+        print("   - IN CODEX / CLAUDE CODE / CURSOR (agents without `ask_question` tool):")
+        print("       Present the 1-keystroke quick-reply options in your message and wait for user response:")
+        print("       \"👉 Reply '1' for 💻 Professional Developer or '2' for 👷 Non-Traditional Builder / Vibe Coder (or paste your credit link)!\"")
+        print("3. WHEN THE USER ANSWERS:")
         print("   - First, save their confirmed persona by running: `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --persona <developer|builder>`")
         print("   - If they pasted a credit URL in 'Other' (e.g. `https://g.dev/credits/...`), run: `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step1 \"<USER_CREDIT_URL>\"`")
         print("   - If they chose \"🎟️ Setup my $5.00 Workshop Credit\" without a URL yet, ask them to paste their `https://g.dev/credits/...` link (or click a button if they already claimed it).")
@@ -1968,8 +1975,8 @@ def run_step4():
 
     harness = detect_harness()
 
-    if harness in ("claude_code", "cursor", "vscode"):
-        h_name = "Claude Code" if harness == "claude_code" else ("Cursor" if harness == "cursor" else "VS Code / External Agent")
+    if harness in ("claude_code", "cursor", "vscode", "codex"):
+        h_name = "Codex" if harness == "codex" else ("Claude Code" if harness == "claude_code" else ("Cursor" if harness == "cursor" else "VS Code / External Agent"))
         print(f"### 🔄 Step 4 of 4: Connect {h_name} to Your Workshop Project")
         print(f"📋 **Your Project ID (`{project_id}`) is copied to your clipboard!**\n")
         print("To let your agent authenticate to Google Cloud Vertex AI using your $5.00 workshop credits, run:")
