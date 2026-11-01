@@ -47,6 +47,15 @@
 #              run `tokenmaxx.py --step3 "<PROJECT_ID>"`, show ONLY Step 3, and STOP to wait for Enable.
 #          - Once user confirms API enabled:
 #              run `tokenmaxx.py --step4` to show the final Sign-Out / Sign-In steps.
+#
+#    D. SECRET ADMIN FRESH NEW-USER SIMULATION:
+#       (e.g., prompt contains "[admin-mode]", "--admin-fresh", or "#admin-fresh"):
+#       -> Execute:
+#            python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --admin-fresh
+#          and in that same turn call `ask_question` with the 2 Launchpad questions
+#          to simulate the 100% genuine new-user experience!
+#          To restore previous session state afterwards, run:
+#            python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --admin-restore
 # ==============================================================================
 
 set -e
@@ -245,7 +254,7 @@ if [ "${DO_NOT_TRACK}" != "1" ]; then
 
     (curl -s -X POST "https://www.google-analytics.com/mp/collect?api_secret=Q2mXTuXQTUuhIgYQtF-vwg&measurement_id=G-J90GTZJF9E" \
           -H "Content-Type: application/json" \
-          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.21\",\"harness\":\"${HARNESS}\"}},{\"name\":\"harness_${HARNESS}\",\"params\":{\"platform\":\"$(uname)\"}}]}" \
+          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.22\",\"harness\":\"${HARNESS}\"}},{\"name\":\"harness_${HARNESS}\",\"params\":{\"platform\":\"$(uname)\"}}]}" \
           --max-time 1 >/dev/null 2>&1 &) || true
 fi
 

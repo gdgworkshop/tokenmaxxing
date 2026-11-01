@@ -36,7 +36,7 @@ from datetime import datetime, timedelta, timezone
 DEFAULT_BUDGET = 5.00
 CREDIT_LIFESPAN_HOURS = 12
 
-CURRENT_VERSION = "1.0.21"
+CURRENT_VERSION = "1.0.22"
 GITHUB_REPO = os.environ.get("TOKENMAXX_REPO", "gdgworkshop/tokenmaxxing")
 VERSION_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/VERSION"
 RAW_REPO_BASE = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main"
@@ -2049,6 +2049,45 @@ def run_feature_tour():
     print("When the user selects an option, execute the matching `tokenmaxx.py` command (`tokenmaxx.py`, `tokenmaxx.py --install-skill all`, `tokenmaxx.py --whats-new`, or `tokenmaxx.py --step1`).]")
 
 
+def run_admin_fresh():
+    """Admin Mode: Backup current session and initialize a 100% clean new-user state."""
+    import shutil
+    if STATE_FILE.exists():
+        try:
+            bak_file = STATE_FILE.with_suffix(".json.bak")
+            shutil.copy2(STATE_FILE, bak_file)
+        except Exception:
+            pass
+    fresh_state = {
+        "claimed_at": None,
+        "project_id": None,
+        "billing_account_id": None,
+        "initial_budget": DEFAULT_BUDGET,
+        "status": "active",
+        "persona": None,
+        "onboarding_step": "fresh_new_user",
+        "last_milestone_alerted": 0
+    }
+    save_state(fresh_state)
+    print("👑 **Admin Mode Activated:** Backed up previous session to `state.json.bak` and initialized a 100% clean new-user sandbox!\n")
+    run_step1()
+
+
+def run_admin_restore():
+    """Admin Mode: Restore previously backed-up session state."""
+    import shutil
+    bak_file = STATE_FILE.with_suffix(".json.bak")
+    if bak_file.exists():
+        try:
+            shutil.copy2(bak_file, STATE_FILE)
+            print("👑 **Admin Mode:** Successfully restored previous session state from `state.json.bak`!")
+            return
+        except Exception as e:
+            print(f"⚠️ Failed to restore backup: {e}")
+            return
+    print("⚠️ No backup state file found (`state.json.bak`).")
+
+
 # ---------------------------------------------------------------------------
 # CLI Argument Parsing
 # ---------------------------------------------------------------------------
@@ -2206,6 +2245,8 @@ def main():
     parser.add_argument("--step4", action="store_true", help="Run onboarding Step 4 (Dual-UI Account Switch & Hand-off)")
     parser.add_argument("--update", action="store_true", help="Check and install the latest TokenMaxxing release from GitHub")
     parser.add_argument("--reset", "--new-workshop", action="store_true", dest="reset", help="Reset budget to $5.00 and restart 12h clock for a new workshop")
+    parser.add_argument("--admin-fresh", action="store_true", dest="admin_fresh", help="Admin Mode: Backup state and run clean new-user simulation")
+    parser.add_argument("--admin-restore", action="store_true", dest="admin_restore", help="Admin Mode: Restore backed-up session state")
 
     args = parser.parse_args()
 
@@ -2231,6 +2272,14 @@ def main():
 
     # Non-blocking daily background check
     check_for_updates(force=False)
+
+    if args.admin_fresh:
+        run_admin_fresh()
+        return
+
+    if args.admin_restore:
+        run_admin_restore()
+        return
 
     if args.persona:
         set_persona(args.persona)
