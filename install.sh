@@ -30,21 +30,19 @@
 #
 #    C. IF LAUNCHING COMPANION, SETTING UP CREDITS, OR PASTING LINK:
 #       (e.g., "Launch my workshop companion", "Launch my builder companion", "Launch my developer companion", "Help me setup my credits", "Setup my workshop", or just pasting the URL):
-#       -> STRICT 1-STEP-AT-A-TIME ONBOARDING RULE (NEVER DUMP ALL STEPS AT ONCE!):
-#          - If the user prompt mentions "developer":
-#              python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --persona developer
-#          - If the user prompt mentions "builder" or "vibe":
-#              python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --persona builder
+#       -> STRICT 1-STEP-AT-A-TIME INTERACTIVE LAUNCHPAD RULE:
+#          - DO NOT assume the user's persona from their prompt text alone!
 #          - Run:
 #              python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step1
 #            (Note: Only pass an argument to --step1 if the user also provided a separate
-#             event credit link like https://g.dev/credits/... — NEVER pass https://g.dev/events/tokenmaxxing!)
-#          - Present ONLY the Welcome Intro + Step 1 output to the user and STOP!
-#          - DO NOT show Step 2, Step 3, or Step 4 yet! Wait for the user to reply first.
-#          - If user pastes a credit URL (https://g.dev/credits/...):
-#              run `tokenmaxx.py --step1 "<USER_CREDIT_URL>"` and STOP to wait for them to reply "claimed"!
-#          - Once user confirms claimed ("claimed" / "done"):
-#              run `tokenmaxx.py --step2`, show ONLY Step 2, and STOP to wait for their lowercase Project ID.
+#             event credit link like https://g.dev/credits/... — NEVER pass https://g.dev/ai/workshop!)
+#          - Present the Welcome Intro AND in the same turn call the `ask_question` tool with:
+#              Q1: "How would you like me to tailor coding guidance for you today?"
+#                  (💻 Professional Developer vs. 👷 Non-Traditional Builder / Vibe Coder)
+#              Q2: "How would you like to get started with your Workshop Companion?"
+#                  (🎟️ Setup $5.00 Credit, ✅ Already claimed credit -> Step 2, 🧭 Guide me through plugin features -> --tour, 🧩 Install Official Google Agent Skills)
+#          - DO NOT show Step 2, Step 3, or Step 4 yet! Wait for the user's interactive selection first.
+#          - Once user selects their persona & starting action, save persona via `tokenmaxx.py --persona <developer|builder>` and run the matching command (`--step1 "<URL>"`, `--step2`, `--tour`, or `--install-skill`).
 #          - Once user gives Project ID:
 #              run `tokenmaxx.py --step3 "<PROJECT_ID>"`, show ONLY Step 3, and STOP to wait for Enable.
 #          - Once user confirms API enabled:
@@ -131,16 +129,16 @@ trigger: always_on
 3. **Strict 1-Step-at-a-Time Workshop Companion & Credit Onboarding (Zero Browser-Subagent Policy):**
    - When helping a user launch their companion or set up workshop/cloud credits (e.g., *"Launch my workshop companion"*, *"Launch my builder/developer companion"*, *"Help me setup my credits"*), NEVER dump all 4 steps at once and NEVER output `<YOUR_PROJECT_ID>`. Run `tokenmaxx.py --step1`, `--step2`, `--step3 <PROJECT_ID>`, and `--step4` one step per turn, stopping and waiting for the user's reply after each step.
    - **Browser Policy Guardrail:** NEVER invoke the `/browser` subagent or execute browser JavaScript to open `g.dev` or GCP Console URLs—always run `tokenmaxx.py` via the terminal tool (which uses OS-native `open -g` / `start` and `curl`) so users are never blocked by `Browser Javascript Execution Policy` (`Disabled` / `Request Review`) or `Browser Actuation Rules`.
-   - **Adaptive Guidance & Persona Tracking (💻 Dev vs. 👷 Builder / Vibe Coder):** In Step 1, if the attendee's role is not yet saved in `state.json` and not explicitly mentioned in the prompt:
-     - **In Antigravity:** Call the `ask_question` tool so the user sees native 1-click buttons and doesn't need to type anything:
-       - Question: `"How would you like me to tailor code guidance for you today?"`
-       - Options:
-         - `"(Recommended) 💻 Professional Developer / Engineer (concise diffs & architecture patterns)"`
-         - `"👷 Non-Traditional Builder / Vibe Coder (designer, marketer, founder, student — intuitive visual explanations)"`
-     - **In Other Harnesses (Claude Code, Cursor, Codex):** Present a 1-character quick-reply option:
-       `"Reply '1' for 💻 Professional Developer or '2' for 👷 Non-Traditional Builder / Vibe Coder (or paste your credit link)."`
-     When selected or detected from the prompt, run:
-     `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --persona <developer|builder>`
+   - **Interactive Launchpad & Persona Confirmation (💻 Dev vs. 👷 Builder / Vibe Coder):** NEVER assume the user's persona just because they copied a prompt containing "developer" or "builder" from the landing page! On Step 1 (when no credit URL is passed yet), ALWAYS call the `ask_question` tool in the same turn with 2 questions so the user confirms in-harness with 1 click:
+     - **Question 1:** `"How would you like me to tailor coding guidance for you today?"`
+       - `"(Recommended) 💻 Professional Developer / Engineer (concise diffs & architecture patterns)"`
+       - `"👷 Non-Traditional Builder / Vibe Coder (intuitive visual explanations, zero terminal jargon)"`
+     - **Question 2:** `"How would you like to get started with your Workshop Companion?"`
+       - `"(Recommended) 🎟️ Setup my $5.00 Workshop Credit (or paste your credit link in 'Other' below)"`
+       - `"✅ I already claimed my credit — connect my Google Cloud Project (Step 2)"`
+       - `"🧭 Guide me through the plugin features (Gas Gauge, Official Skills & Vibe Coding Tips)"`
+       - `"🧩 Install Official Google Agent Skills for my project (Gemini, Firebase, Cloud Run, Flutter)"`
+     When the user responds, save their confirmed persona via `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --persona <developer|builder>` and route to their selected action (`--step1 "<URL>"`, `--step2`, `--tour`, or `--install-skill`).
      - **💻 Professional Developer:** Provide concise architecture diffs, idiomatic patterns, and direct commands.
      - **👷 Non-Traditional Builder / Vibe Coder:** Provide intuitive conceptual explanations, visual analogies, and zero unnecessary terminal jargon.
    - **CRITICAL:** If `--step1` was run without a credit URL and the user replies by pasting a credit link (e.g. `https://g.dev/credits/...` or `https://me.developers.google.com/...`), you MUST run `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step1 "<USER_CREDIT_URL>"` to open their credit link in the browser first, and wait for them to reply `"claimed"` before running `--step2`!
@@ -247,7 +245,7 @@ if [ "${DO_NOT_TRACK}" != "1" ]; then
 
     (curl -s -X POST "https://www.google-analytics.com/mp/collect?api_secret=Q2mXTuXQTUuhIgYQtF-vwg&measurement_id=G-J90GTZJF9E" \
           -H "Content-Type: application/json" \
-          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.20\",\"harness\":\"${HARNESS}\"}},{\"name\":\"harness_${HARNESS}\",\"params\":{\"platform\":\"$(uname)\"}}]}" \
+          -d "{\"client_id\":\"${CLIENT_ID}\",\"events\":[{\"name\":\"installer_executed\",\"params\":{\"platform\":\"$(uname)\",\"version\":\"1.0.21\",\"harness\":\"${HARNESS}\"}},{\"name\":\"harness_${HARNESS}\",\"params\":{\"platform\":\"$(uname)\"}}]}" \
           --max-time 1 >/dev/null 2>&1 &) || true
 fi
 

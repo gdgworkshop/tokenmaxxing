@@ -36,7 +36,7 @@ from datetime import datetime, timedelta, timezone
 DEFAULT_BUDGET = 5.00
 CREDIT_LIFESPAN_HOURS = 12
 
-CURRENT_VERSION = "1.0.20"
+CURRENT_VERSION = "1.0.21"
 GITHUB_REPO = os.environ.get("TOKENMAXX_REPO", "gdgworkshop/tokenmaxxing")
 VERSION_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/VERSION"
 RAW_REPO_BASE = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main"
@@ -1808,29 +1808,21 @@ def run_step1(raw_claim_url: str = ""):
 
     if not (clean_input and was_awaiting_url):
         open_browser_url("https://g.dev/ai/workshop", background=True)
-        print("⚡ **Welcome to TokenMaxxing — Your GDG Workshop & Economic Co-Pilot!**")
-        print("I'm here to superpower your entire workshop journey from setup to live deployment:\n")
+        print("⚡ **Welcome to TokenMaxxing — Your GDG Workshop & Vibe Coding Co-Pilot!**")
+        print("I'm here to superpower your entire journey from setup to live deployment:\n")
         print("🎟️ **90-Second Credit Setup:** Guided 3-step activation with pre-enabled Vertex AI (0% crash rate).")
         print("⛽ **Real-Time Gas Gauge & Timer:** Live token pricing, 12h expiration countdown, and model efficiency pacing.")
         print("🔑 **Zero-Key Gemini SDK:** Build GenAI apps with your $5.00 grant without managing or leaking API keys.")
         print("🚀 **Official Skills & 1-Prompt Deploy:** Verified Google blueprints (Firebase, Flutter, Gemini) + 1-prompt Cloud Run deploy.")
         print("🌐 **Web Companion Hub:** Opened **[g.dev/ai/workshop](https://g.dev/ai/workshop)** in your browser background for 1-click prompt recipes & cheat sheets.\n")
 
-        curr_state = load_state()
-        if not curr_state.get("persona"):
-            print("🎯 **Tailor Your Workshop Experience:**")
-            print("To customize code guidance for you today, choose your role:")
-            print(" • 💻 **Professional Developer / Engineer** *(concise diffs, architecture patterns)*")
-            print(" • 👷 **Non-Traditional Builder / Vibe Coder** *(designer, marketer, founder, student — intuitive conceptual explanations)*\n")
-            print("*(💡 You can click the choice button or paste your credit link below!)*\n")
-
         if env["needs_update"]:
             print(f"⚠️ **Important Version Check (Antigravity v{env['version_str']} detected):**")
             print("Before we reach Step 4, please make sure you update Antigravity to **v2.26.0+** (**Antigravity → Check for Updates** or download from `https://antigravity.google`) so the **\"Use Business Account\"** sign-in option is available.\n")
         print("---")
 
-    print("### 🎟️ Step 1 of 4: Claim Your $5.00 Workshop Credit")
     if clean_input:
+        print("### 🎟️ Step 1 of 4: Claim Your $5.00 Workshop Credit")
         print(f"I just opened your credit link in your browser:\n👉 **{claim_url}**")
         if direct_portal and direct_portal != claim_url:
             print(f"   *(Direct Portal Fallback if redirect fails: {direct_portal})*\n")
@@ -1840,17 +1832,37 @@ def run_step1(raw_claim_url: str = ""):
         print("2. Click **\"Claim Credit\"** (or **\"Apply\"**) on that page.")
         print("   • 🔄 **First time on g.dev?** If Google asks you to create a Developer Profile first, complete that and re-open the link above so the **\"Claim Credit\"** button appears.")
         print("   • 👤 **Same Account Rule:** Note which Google account avatar is in the top-right—you will need to use this exact same account for Steps 2, 3, and 4!")
-        print("3. Reply **\"claimed\"** (or **\"done\"**) here once you've claimed it in your browser, and I'll open Step 2 for you!")
-        print("\n🛑 [AGENT DIRECTIVE: Present ONLY the message above to the user and STOP. Do NOT run `--step2` yet! Wait for the user to click \"Claim Credit\" in their browser and reply \"claimed\" or \"done\", and ONLY THEN run `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step2`.]")
+        print("3. Click the confirmation button below (or reply **\"claimed\"**) once you've claimed it in your browser, and I'll open Step 2 for you!")
+        print("\n🛑 [AGENT DIRECTIVE: Present the message above to the user, and IN THIS SAME TURN call the `ask_question` tool (if available in your harness) with:")
+        print("  Question: \"Once you've clicked 'Claim Credit' in your browser, how would you like to proceed?\"")
+        print("  Options:")
+        print("    1. \"(Recommended) ✅ I clicked 'Claim Credit' in my browser — open Step 2!\"")
+        print("    2. \"🔄 Re-open my credit link in the browser\"")
+        print("    3. \"🧭 Guide me through the plugin features instead\"")
+        print("Do NOT run `--step2` yet! Wait for the user's selection, and when they confirm they claimed it, run `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step2`.]")
     else:
-        print("Please paste your **workshop credit link** (e.g. `https://g.dev/credits/...` or `https://me.developers.google.com/...`) so I can open it in your browser for you.")
-        print("*(If you already claimed your credit on the presenter's slides or are using an existing GCP credit project, simply reply **\"claimed\"** and I'll open Step 2!)*")
-        print("\n🛑 [AGENT DIRECTIVE: Present ONLY the message above to the user and STOP. Do NOT show Step 2, Step 3, or Step 4 yet!")
-        print("CRITICAL RULE FOR THE USER'S NEXT REPLY:")
-        print("• If the user replies with a URL or event slug (e.g. `https://g.dev/credits/...` or `https://me.developers.google.com/...`), you MUST run:")
-        print("    `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step1 \"<USER_CREDIT_URL>\"`")
-        print("  so it opens their credit claim page in the browser! Do NOT run `--step2` when they paste a credit URL!")
-        print("• ONLY run `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step2` after the user confirms they have already claimed the credit (e.g. replies \"claimed\" or \"done\").]")
+        print("### 🎯 Let's Tailor Your Companion & Get Started!")
+        print("Choose your role and how you'd like to begin using the interactive buttons below *(or paste your `https://g.dev/credits/...` link directly)*:")
+        print("\n🛑 [AGENT DIRECTIVE — MANDATORY INTERACTIVE LAUNCHPAD:")
+        print("1. Output the Welcome Banner above to the user.")
+        print("2. DO NOT assume the user's persona from their prompt text! You MUST ALWAYS confirm their persona and starting action in this turn by calling the `ask_question` tool with these EXACT 2 questions:")
+        print("   - Question 1: \"How would you like me to tailor coding guidance for you today?\"")
+        print("     Options:")
+        print("       • \"(Recommended) 💻 Professional Developer / Engineer (concise diffs & architecture patterns)\"")
+        print("       • \"👷 Non-Traditional Builder / Vibe Coder (intuitive visual explanations, zero terminal jargon)\"")
+        print("   - Question 2: \"How would you like to get started with your Workshop Companion?\"")
+        print("     Options:")
+        print("       • \"(Recommended) 🎟️ Setup my $5.00 Workshop Credit (or paste your credit link in 'Other' below)\"")
+        print("       • \"✅ I already claimed my credit — connect my Google Cloud Project (Step 2)\"")
+        print("       • \"🧭 Guide me through the plugin features (Gas Gauge, Official Skills & Vibe Coding Tips)\"")
+        print("       • \"🧩 Install Official Google Agent Skills for my project (Gemini, Firebase, Cloud Run, Flutter)\"")
+        print("3. WHEN THE USER ANSWERS THE INTERACTIVE WIDGET:")
+        print("   - First, save their confirmed persona by running: `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --persona <developer|builder>`")
+        print("   - If they pasted a credit URL in 'Other' (e.g. `https://g.dev/credits/...`), run: `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step1 \"<USER_CREDIT_URL>\"`")
+        print("   - If they chose \"🎟️ Setup my $5.00 Workshop Credit\" without a URL yet, ask them to paste their `https://g.dev/credits/...` link (or click a button if they already claimed it).")
+        print("   - If they chose \"✅ I already claimed my credit\", run: `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step2`")
+        print("   - If they chose \"🧭 Guide me through the plugin features\", run: `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --tour`")
+        print("   - If they chose \"🧩 Install Official Google Agent Skills\", run: `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --install-skill all` (or ask which track they want).]")
 
 def run_step2():
     record_telemetry_event("setup_step2")
@@ -1924,8 +1936,13 @@ def run_step3(project_id: str):
     print(f"👉 **{enable_url}**\n")
     print("1. In your browser window, click **Next** (if shown) and then click **Enable**.")
     print("   *(💡 If Google Cloud prompts you to link a billing account here, select your **`GDP Credit` / `Google Developers Credits`** account).*")
-    print("2. Wait ~5 seconds until it finishes enabling, then reply **\"done\"** here for our final step!")
-    print("\n🛑 [AGENT DIRECTIVE: Present ONLY Step 3 above to the user and STOP. Do NOT show Step 4 yet! Wait for the user to confirm they clicked Enable.]")
+    print("2. Wait ~5 seconds until it finishes enabling, then click the button below (or reply **\"done\"**) for our final step!")
+    print("\n🛑 [AGENT DIRECTIVE: Present Step 3 above to the user, and IN THIS SAME TURN call the `ask_question` tool (if available) with:")
+    print("  Question: \"Once you've clicked 'Enable' on the Vertex AI API page in your browser, ready for Step 4?\"")
+    print("  Options:")
+    print("    1. \"(Recommended) ✅ I clicked 'Enable' on Vertex AI API — open Step 4!\"")
+    print("    2. \"🔄 Re-open the Vertex AI API page in my browser\"")
+    print("Do NOT show Step 4 yet! Wait for the user to confirm they clicked Enable, and ONLY THEN run `python3 ~/.gemini/config/skills/tokenmaxxing/scripts/tokenmaxx.py --step4`.]")
 
 def run_step4():
     record_telemetry_event("setup_step4")
@@ -1996,6 +2013,40 @@ def run_step4():
     print("\n💡 **Google Cloud Developer Marketplace Plugin (Recommended):**")
     print("To get official Google Cloud architectural blueprints, CLI guardrails, and live documentation in your new chat:")
     print("<plugin-card catalog-id=\"antigravity-plugins-official/plugin/google-cloud-developer\"></plugin-card>")
+
+
+def run_feature_tour():
+    record_telemetry_event("feature_tour_viewed")
+    state = load_state()
+    persona = state.get("persona") or "developer"
+    is_builder = (persona == "builder")
+
+    print("🧭 **TokenMaxxing — Interactive Feature & Vibe Coding Guide**")
+    if is_builder:
+        print("*(👷 Tailored for Builders & Vibe Coders — intuitive visual workflows, zero terminal jargon)*\n")
+    else:
+        print("*(💻 Tailored for Professional Developers — idiomatic SDKs, context economics & Cloud Run)*\n")
+
+    print("Here are the **4 Superpowers** unlocked in your workspace right now:\n")
+    print("1. ⛽ **Real-Time Gas Gauge & Quota Radar**")
+    print("   • Ask *\"How much credit and tokens do I have left?\"* anytime.")
+    print("   • Tracks your exact token spend with 75% context caching discounts, 12h voucher timer, and model quota radar.\n")
+    print("2. 🧩 **Official Google Agent Skills (Zero API Hallucinations)**")
+    print("   • Ask *\"Install Gemini API, Firebase, Flutter, or Cloud Run skills\"*.")
+    print("   • Pulls verified blueprints from `github.com/google/skills` so the AI never hallucinates outdated SDK syntax (saving ~35,000 debugging tokens per feature!).\n")
+    print("3. 🔑 **Zero-Key Gemini SDK & 1-Prompt Cloud Run Deploy**")
+    print("   • Ask *\"Build a Gemini app\"* — auto-configures dual-mode Vertex AI so your app runs with your workshop credit and zero API keys.")
+    print("   • Ask *\"Deploy my app to Cloud Run\"* — ships your project to a live public `https://...run.app` URL in one prompt.\n")
+    print("4. 💡 **What's New in Antigravity & PromptMaxxing Coach**")
+    print("   • Ask *\"What's new in Antigravity?\"* to discover power commands like `/grill-me`, `/boost`, `/compact`, and Generative UI artifacts.")
+    print("\n🛑 [AGENT DIRECTIVE: Present the Feature Tour above to the user, and IN THIS SAME TURN call the `ask_question` tool with:")
+    print("  Question: \"Which TokenMaxxing superpower would you like to try right now?\"")
+    print("  Options:")
+    print("    1. \"(Recommended) ⛽ Show my live Token Gas Gauge & Quota Radar\"")
+    print("    2. \"🧩 Install Official Google Agent Skills (Gemini, Firebase, Cloud Run, Flutter)\"")
+    print("    3. \"💡 Show 'What's New in Antigravity' & Vibe Coding Power Tips\"")
+    print("    4. \"🎟️ Setup my $5.00 Workshop Credit (Step 1)\"")
+    print("When the user selects an option, execute the matching `tokenmaxx.py` command (`tokenmaxx.py`, `tokenmaxx.py --install-skill all`, `tokenmaxx.py --whats-new`, or `tokenmaxx.py --step1`).]")
 
 
 # ---------------------------------------------------------------------------
@@ -2147,6 +2198,7 @@ def main():
     parser.add_argument("--install-skill", type=str, help="1-click install official Google skill from github.com/google/skills")
     parser.add_argument("--setup", action="store_true", help="Launch interactive GDG credit setup wizard")
     parser.add_argument("--whats-new", "--tips", action="store_true", dest="whats_new", help="Display latest Antigravity capabilities, slash commands, and pro-tips")
+    parser.add_argument("--tour", "--guide", "--features", action="store_true", dest="tour", help="Display interactive TokenMaxxing feature tour and superpower menu")
     parser.add_argument("--persona", "--set-persona", type=str, default=None, help="Set builder persona: developer or builder")
     parser.add_argument("--step1", nargs="?", const="", default=None, help="Run onboarding Step 1 (Claim Credit & Version Check)")
     parser.add_argument("--step2", action="store_true", help="Run onboarding Step 2 (Open Project Creation)")
@@ -2186,6 +2238,10 @@ def main():
 
     if args.whats_new:
         display_whats_new()
+        return
+
+    if args.tour:
+        run_feature_tour()
         return
 
     if args.step1 is not None:
